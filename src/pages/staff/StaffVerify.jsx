@@ -8,7 +8,6 @@ export default function StaffVerify() {
 
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [claiming, setClaiming] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
   useEffect(() => {
@@ -28,7 +27,11 @@ export default function StaffVerify() {
         return;
       }
 
-      const res = await supabase.from('customers').select('id, name, phone, gift_status').eq('id', id).maybeSingle();
+      const res = await supabase
+        .from('customers')
+        .select('id, name, phone, gift_status, claimed_at')
+        .eq('id', id)
+        .maybeSingle();
       if (cancelled) return;
 
       if (res.error) {
@@ -38,7 +41,23 @@ export default function StaffVerify() {
         return;
       }
 
-      setCustomer(res.data || null);
+      const row = res.data || null;
+      setCustomer(row);
+
+      // 스캔(접속)만으로 지급 완료 처리
+      if (row && row.gift_status !== 'claimed') {
+        const now = new Date().toISOString();
+        const upd = await supabase
+          .from('customers')
+          .update({ gift_status: 'claimed', claimed_at: now })
+          .eq('id', id)
+          .select('id, name, phone, gift_status, claimed_at')
+          .maybeSingle();
+
+        if (!cancelled && !upd.error) {
+          setCustomer(upd.data || row);
+        }
+      }
       setLoading(false);
     };
 
@@ -55,29 +74,6 @@ export default function StaffVerify() {
     const v = String(customer.phone);
     return v.length > 4 ? v.slice(-4) : v;
   }, [customer?.phone]);
-
-  const handleClaim = async () => {
-    if (!id || !supabase) return;
-    if (isClaimed) return;
-
-    try {
-      setClaiming(true);
-      const now = new Date().toISOString();
-      const res = await supabase
-        .from('customers')
-        .update({ gift_status: 'claimed', claimed_at: now })
-        .eq('id', id)
-        .select('id, name, phone, gift_status')
-        .maybeSingle();
-
-      if (res.error) throw res.error;
-      setCustomer(res.data || customer);
-    } catch {
-      setErrorMsg('사은품 지급 처리에 실패했습니다.');
-    } finally {
-      setClaiming(false);
-    }
-  };
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-[#F8F9FA]">
@@ -120,21 +116,9 @@ export default function StaffVerify() {
               </div>
             </div>
 
-            {!isClaimed && (
-              <button
-                onClick={handleClaim}
-                disabled={claiming}
-                className={`w-full font-bold py-3 rounded-lg mt-2 transition ${
-                  isClaimed ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#1B3A5C] text-white hover:bg-[#152a47]'
-                }`}
-              >
-                사은품 지급 완료
-              </button>
-            )}
-
             {isClaimed && (
               <div className="text-center text-xs text-gray-500 pt-2">
-                이미 지급이 완료된 고객입니다.
+                지급 완료 처리되었습니다.
               </div>
             )}
           </div>

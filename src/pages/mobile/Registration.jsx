@@ -12,10 +12,10 @@ export default function Registration() {
   const publicBaseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [expandedConsent, setExpandedConsent] = useState(null);
   const [customerId, setCustomerId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [products, setProducts] = useState([]);
+  const [friendAdded, setFriendAdded] = useState(false);
 
   // Step 1: Consent
   const [consents, setConsents] = useState({
@@ -105,19 +105,6 @@ export default function Registration() {
     try {
       setIsSaving(true);
 
-      // 연락처 중복 체크
-      const existing = await supabase
-        .from('customers')
-        .select('id')
-        .eq('phone', formData.phone)
-        .maybeSingle();
-
-      if (existing.error) throw existing.error;
-      if (existing.data) {
-        alert('이미 등록된 연락처입니다.');
-        return;
-      }
-
       const productsOwned =
         formData.product && formData.product !== 'none' ? [formData.product] : [];
 
@@ -130,6 +117,7 @@ export default function Registration() {
           products_owned: productsOwned,
           interests: formData.interests,
           source,
+          marketing_consent: consents.marketing,
           gift_status: 'pending',
           claimed_at: null,
         })
@@ -139,6 +127,7 @@ export default function Registration() {
       if (inserted.error) throw inserted.error;
 
       setCustomerId(inserted.data.id);
+      setFriendAdded(false);
       setCurrentStep(3);
     } catch {
       alert('등록에 실패했습니다. 잠시 후 다시 시도해 주세요.');
@@ -148,7 +137,11 @@ export default function Registration() {
   };
 
   const handleReset = () => {
-    navigate('/');
+    const eventId = _eventId || 'kintex2026';
+    const landingPath = source
+      ? `/landing/${eventId}?source=${encodeURIComponent(source)}`
+      : `/landing/${eventId}`;
+    navigate(landingPath);
   };
 
   return (
@@ -191,17 +184,13 @@ export default function Registration() {
 
             {/* Privacy Consent */}
             <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setExpandedConsent(expandedConsent === 'privacy' ? null : 'privacy')}
-                className="w-full px-4 py-3 flex items-center justify-between bg-white hover:bg-gray-50 transition"
-              >
+              <div className="w-full px-4 py-3 flex items-center justify-between bg-white">
                 <div className="flex items-center gap-3 text-left">
                   <input
                     type="checkbox"
                     checked={consents.privacy}
                     onChange={() => handleConsentChange('privacy')}
                     className="w-5 h-5 rounded accent-[#2E75B6]"
-                    onClick={e => e.stopPropagation()}
                   />
                   <div>
                     <div className="font-semibold text-[#1B3A5C]">
@@ -209,42 +198,31 @@ export default function Registration() {
                     </div>
                   </div>
                 </div>
-                {expandedConsent === 'privacy' ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
-              {expandedConsent === 'privacy' && (
-                <div className="bg-gray-50 px-4 py-3 text-sm text-gray-600 max-h-40 overflow-y-auto">
-                  <p className="mb-2 font-semibold">개인정보 처리 방침</p>
-                  <p>
-                    삼화메디칼은 귀하의 개인정보를 수집하여 다음의 목적으로 이용합니다:
-                    - 이벤트 참여 및 사은품 제공
-                    - 고객 서비스 제공
-                    - 제품 정보 안내
-                    - 마케팅 활동
-                  </p>
-                  <p className="mt-2">
-                    본인은 상기 개인정보 처리 방침에 동의합니다.
-                  </p>
-                </div>
-              )}
+              </div>
+              <div className="bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                <p className="mb-2 font-semibold">개인정보 처리 방침</p>
+                <p>
+                  삼화메디칼은 귀하의 개인정보를 수집하여 다음의 목적으로 이용합니다.
+                </p>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li>이벤트 참여 및 사은품 제공</li>
+                  <li>제품 정보 및 고객 서비스 제공</li>
+                </ul>
+                <p className="mt-2">
+                  본인은 상기 개인정보 처리 방침에 동의합니다.
+                </p>
+              </div>
             </div>
 
             {/* Marketing Consent */}
             <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setExpandedConsent(expandedConsent === 'marketing' ? null : 'marketing')}
-                className="w-full px-4 py-3 flex items-center justify-between bg-white hover:bg-gray-50 transition"
-              >
+              <div className="w-full px-4 py-3 flex items-center justify-between bg-white">
                 <div className="flex items-center gap-3 text-left">
                   <input
                     type="checkbox"
                     checked={consents.marketing}
                     onChange={() => handleConsentChange('marketing')}
                     className="w-5 h-5 rounded accent-[#2E75B6]"
-                    onClick={e => e.stopPropagation()}
                   />
                   <div>
                     <div className="font-semibold text-[#1B3A5C]">
@@ -253,20 +231,13 @@ export default function Registration() {
                     <p className="text-xs text-gray-500 mt-1">거부 시 이벤트 혜택 수신 불가</p>
                   </div>
                 </div>
-                {expandedConsent === 'marketing' ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
-              {expandedConsent === 'marketing' && (
-                <div className="bg-gray-50 px-4 py-3 text-sm text-gray-600 max-h-40 overflow-y-auto">
-                  <p className="mb-2 font-semibold">마케팅 수신 안내</p>
-                  <p>
-                    삼화메디칼에서 제공하는 뉴스레터, 프로모션, 신제품 정보 등을 받으실 수 있습니다.
-                  </p>
-                </div>
-              )}
+              </div>
+              <div className="bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                <p className="mb-2 font-semibold">마케팅 수신 안내</p>
+                <p>
+                  삼화메디칼에서 제공하는 뉴스레터, 프로모션, 신제품 정보 등을 받으실 수 있습니다.
+                </p>
+              </div>
             </div>
 
             {/* Next Button */}
@@ -386,52 +357,60 @@ export default function Registration() {
             </div>
 
             <h2 className="text-2xl font-bold text-[#1B3A5C] mb-4">
-              등록이 완료되었습니다!
+              {friendAdded ? '감사합니다!' : '등록이 완료되었습니다!'}
             </h2>
 
-            <div className="space-y-3 text-sm text-gray-600 mb-8">
-              <p>
-                <span className="block font-semibold text-[#1B3A5C] mb-2">📱 카카오톡 채널 친구 추가</span>
-                친구 추가를 확인해 주세요. 특별한 혜택 정보를 먼저 받아보실 수 있습니다.
-              </p>
-              <p>
-                <span className="block font-semibold text-[#1B3A5C] mb-2">🎁 사은품 수령</span>
-                사은품은 삼화메디칼 부스에서 수령해 주세요.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              disabled={!customerId}
-              className={`w-full font-bold py-3 rounded-lg mb-3 transition ${
-                customerId
-                  ? 'bg-[#FEE500] text-gray-900 hover:bg-[#FDD835]'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-              onClick={() => {
-                // 추후 카카오 채널 링크/검증 로직 연결 예정
-                if (!customerId) return;
-                alert('카카오톡 친구 추가 버튼이 활성화되었습니다. (링크 연결은 추후 적용)');
-              }}
-            >
-              카카오톡 친구 추가
-            </button>
-
-            {customerId && (
-              <div className="mx-auto max-w-[320px] bg-white border border-gray-200 rounded-lg p-4 mb-6">
-                <div className="text-center mb-3">
-                  <div className="font-bold text-[#1B3A5C] text-sm mb-1">검증용 QR</div>
-                  <div className="text-xs text-gray-500">직원이 QR을 스캔해 사은품 지급을 완료합니다.</div>
-                </div>
-                <div className="flex items-center justify-center">
-                  {(() => {
-                    const base = import.meta.env.BASE_URL === './' ? '/' : import.meta.env.BASE_URL;
-                    const baseTrim = base.endsWith('/') ? base.slice(0, -1) : base;
-                    const verifyUrl = `${publicBaseUrl}${baseTrim}/staff/verify?id=${customerId}`;
-                    return <QRCodeCanvas value={verifyUrl} size={180} includeMargin={false} />;
-                  })()}
-                </div>
+            {!friendAdded && (
+              <div className="space-y-3 text-sm text-gray-600 mb-8">
+                <p>
+                  <span className="block font-semibold text-[#1B3A5C] mb-2">📱 카카오톡 채널 친구 추가</span>
+                  아래 버튼을 눌러 친구 추가를 진행해 주세요.
+                </p>
               </div>
+            )}
+
+            {!friendAdded && (
+              <button
+                type="button"
+                disabled={!customerId}
+                className={`w-full font-bold py-3 rounded-lg mb-3 transition ${
+                  customerId
+                    ? 'bg-[#FEE500] text-gray-900 hover:bg-[#FDD835]'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+                onClick={() => {
+                  if (!customerId) return;
+                  // 추후 카카오 채널 링크/실제 친구추가 검증 로직 연결 예정
+                  setFriendAdded(true);
+                }}
+              >
+                카카오톡 친구 추가
+              </button>
+            )}
+
+            {friendAdded && customerId && (
+              <>
+                <div className="space-y-3 text-sm text-gray-600 mb-6">
+                  <p>
+                    <span className="block font-semibold text-[#1B3A5C] mb-2">🎁 사은품 수령</span>
+                    삼화메디컬 부스에서 아래 QR 코드를 직원에게 보여주시고 사은품을 수령하세요
+                  </p>
+                </div>
+
+                <div className="mx-auto max-w-[320px] bg-white border border-gray-200 rounded-lg p-4 mb-6">
+                  <div className="text-center mb-3">
+                    <div className="font-bold text-[#1B3A5C] text-sm mb-1">검증용 QR</div>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    {(() => {
+                      const base = import.meta.env.BASE_URL === './' ? '/' : import.meta.env.BASE_URL;
+                      const baseTrim = base.endsWith('/') ? base.slice(0, -1) : base;
+                      const verifyUrl = `${publicBaseUrl}${baseTrim}/staff/verify?id=${customerId}`;
+                      return <QRCodeCanvas value={verifyUrl} size={180} includeMargin={false} />;
+                    })()}
+                  </div>
+                </div>
+              </>
             )}
 
             <button
