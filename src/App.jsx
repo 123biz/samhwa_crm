@@ -11,6 +11,7 @@ import ProductDetail from './pages/mobile/ProductDetail';
 import Registration from './pages/mobile/Registration';
 import Chatbot from './pages/mobile/Chatbot';
 import EventLanding from './pages/mobile/EventLanding';
+import StaffVerify from './pages/staff/StaffVerify';
 
 /** Vite `base: './'`일 때 프로덕션 BASE_URL이 `./`가 되어 라우터와 불일치 → 빈 화면 방지 */
 function routerBasename() {
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/chatbot" element={<Chatbot />} />
         <Route path="/chatbot/:productId" element={<Chatbot />} />
         <Route path="/landing/:eventId" element={<EventLanding />} />
+        <Route path="/staff/verify" element={<StaffVerify />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </BrowserRouter>

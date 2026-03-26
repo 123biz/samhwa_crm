@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -12,7 +12,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { broadcasts } from '../../data/mockData';
+import { supabase } from '../../lib/supabaseClient';
 
 const Analytics = () => {
   const colors = {
@@ -28,21 +28,57 @@ const Analytics = () => {
     border: '#CCCCCC',
   };
 
+  const [broadcasts, setBroadcasts] = useState([]);
+  const [sourceCounts, setSourceCounts] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!supabase) return;
+
+    (async () => {
+      const bRes = await supabase
+        .from('broadcasts')
+        .select('id, title, status, open_rate, click_rate, sent_count')
+        .order('sent_at', { ascending: false, nullsFirst: false });
+
+      if (!cancelled) setBroadcasts(bRes.error ? [] : (bRes.data || []));
+
+      const cRes = await supabase
+        .from('customers')
+        .select('source');
+      if (cancelled) return;
+      if (cRes.error) {
+        setSourceCounts([]);
+        return;
+      }
+      const map = new Map();
+      for (const r of cRes.data || []) {
+        const k = r.source || 'UNKNOWN';
+        map.set(k, (map.get(k) || 0) + 1);
+      }
+      setSourceCounts(Array.from(map.entries()).map(([k, v]) => ({ source: k, value: v })));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Calculate summary statistics
   const stats = useMemo(() => {
     const completedBroadcasts = broadcasts.filter((b) => b.status === '발신완료');
-    const totalSent = completedBroadcasts.reduce((sum, b) => sum + b.sentCount, 0);
+    const totalSent = completedBroadcasts.reduce((sum, b) => sum + Number(b.sent_count || 0), 0);
     const avgOpenRate =
       completedBroadcasts.length > 0
         ? (
-            completedBroadcasts.reduce((sum, b) => sum + b.openRate, 0) /
+            completedBroadcasts.reduce((sum, b) => sum + Number(b.open_rate || 0), 0) /
             completedBroadcasts.length
           ).toFixed(1)
         : 0;
     const avgClickRate =
       completedBroadcasts.length > 0
         ? (
-            completedBroadcasts.reduce((sum, b) => sum + b.clickRate, 0) /
+            completedBroadcasts.reduce((sum, b) => sum + Number(b.click_rate || 0), 0) /
             completedBroadcasts.length
           ).toFixed(1)
         : 0;
@@ -53,24 +89,31 @@ const Analytics = () => {
       avgClickRate,
       totalReached: totalSent,
     };
-  }, []);
+  }, [broadcasts]);
 
   // Data for bar chart (open vs click rate comparison)
   const comparisonData = broadcasts
     .filter((b) => b.status === '발신완료')
     .map((b) => ({
       name: b.title.substring(0, 12),
-      오픈율: b.openRate,
-      클릭률: b.clickRate,
+      오픈율: Number(b.open_rate || 0),
+      클릭률: Number(b.click_rate || 0),
     }));
 
-  // UTM source simulation (from broadcasts)
-  const utmData = [
-    { name: 'QR 이벤트', value: 45 },
-    { name: 'QR 제품', value: 25 },
-    { name: 'QR 배너', value: 10 },
-    { name: '직접 추가', value: 20 },
-  ];
+  // UTM source (from customers.source)
+  const utmData = sourceCounts.map((s) => ({
+    name:
+      s.source === 'QR_EVENT'
+        ? 'QR 이벤트'
+        : s.source === 'QR_PRODUCT'
+          ? 'QR 제품'
+          : s.source === 'QR_BANNER'
+            ? 'QR 배너'
+            : s.source === 'DIRECT'
+              ? '직접 추가'
+              : s.source,
+    value: s.value,
+  }));
 
   const pieColors = ['#2E75B6', '#27AE60', '#E67E22', '#8E44AD'];
 

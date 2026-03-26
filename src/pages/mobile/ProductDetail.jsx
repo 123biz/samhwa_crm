@@ -1,13 +1,46 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Play } from 'lucide-react';
-import { products } from '../../data/mockData';
+import { supabase } from '../../lib/supabaseClient';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const product = products.find(p => p.id === id);
+  const [product, setProduct] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
+    (async () => {
+      setLoading(true);
+      const res = await supabase
+        .from('products')
+        .select('id, name, price, image, description, category, features')
+        .eq('id', id)
+        .maybeSingle();
+      if (cancelled) return;
+      setProduct(res.error ? null : (res.data || null));
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto min-h-screen bg-[#F8F9FA] flex items-center justify-center">
+        <p className="text-gray-600">불러오는 중...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -54,7 +87,7 @@ export default function ProductDetail() {
       <div className="px-4 py-6 bg-white mb-4">
         <h3 className="text-lg font-bold text-[#1B3A5C] mb-4">주요 기능</h3>
         <div className="space-y-3">
-          {product.features.map((feature, idx) => (
+          {(product.features || []).map((feature, idx) => (
             <div key={idx} className="flex items-start gap-3">
               <div className="w-6 h-6 rounded-full bg-[#27AE60] flex items-center justify-center flex-shrink-0 mt-1">
                 <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { broadcasts } from '../../data/mockData';
+import { supabase } from '../../lib/supabaseClient';
 
 const BroadcastMgmt = () => {
   const colors = {
@@ -23,6 +23,8 @@ const BroadcastMgmt = () => {
     targetSegment: '전체',
     reservedAt: '',
   });
+  const [broadcasts, setBroadcasts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -33,8 +35,29 @@ const BroadcastMgmt = () => {
   };
 
   const handleSubmit = () => {
-    if (formData.title && formData.content && formData.reservedAt) {
-      console.log('발신 예약:', formData);
+    if (!formData.title || !formData.content || !formData.reservedAt) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+    if (!supabase) {
+      alert('Supabase 설정이 필요합니다.');
+      return;
+    }
+
+    (async () => {
+      const payload = {
+        title: formData.title,
+        content: formData.content,
+        target_segment: formData.targetSegment,
+        reserved_at: new Date(formData.reservedAt).toISOString(),
+        status: '예약중',
+      };
+      const res = await supabase.from('broadcasts').insert(payload).select('*').single();
+      if (res.error) {
+        alert('발신 예약에 실패했습니다.');
+        return;
+      }
+      setBroadcasts((prev) => [res.data, ...prev]);
       setShowModal(false);
       setFormData({
         title: '',
@@ -43,10 +66,31 @@ const BroadcastMgmt = () => {
         reservedAt: '',
       });
       alert('발신이 예약되었습니다.');
-    } else {
-      alert('모든 필드를 입력해주세요.');
-    }
+    })();
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!supabase) {
+      return;
+    }
+
+    (async () => {
+      setLoading(true);
+      const res = await supabase
+        .from('broadcasts')
+        .select('id, title, target_segment, sent_at, open_rate, click_rate, sent_count, status')
+        .order('sent_at', { ascending: false, nullsFirst: false })
+        .order('reserved_at', { ascending: false, nullsFirst: false });
+      if (cancelled) return;
+      setBroadcasts(res.error ? [] : (res.data || []));
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="p-6" style={{ backgroundColor: colors.bg, minHeight: '100vh' }}>
@@ -111,7 +155,14 @@ const BroadcastMgmt = () => {
               </tr>
             </thead>
             <tbody>
-              {broadcasts.map((broadcast) => {
+              {loading && (
+                <tr>
+                  <td className="py-6 px-4 text-center text-sm" style={{ color: colors.sub }} colSpan={8}>
+                    불러오는 중...
+                  </td>
+                </tr>
+              )}
+              {!loading && broadcasts.map((broadcast) => {
                 const isCompleted = broadcast.status === '발신완료';
                 const statusColor = isCompleted ? colors.success : colors.warning;
 
@@ -134,20 +185,20 @@ const BroadcastMgmt = () => {
                         className="px-3 py-1 rounded-full text-xs font-medium text-white"
                         style={{ backgroundColor: colors.secondary }}
                       >
-                        {broadcast.targetSegment}
+                        {broadcast.target_segment}
                       </span>
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.sub }}>
-                      {broadcast.sentAt || '-'}
+                      {broadcast.sent_at ? String(broadcast.sent_at).slice(0, 16).replace('T', ' ') : '-'}
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.txt }}>
-                      {broadcast.openRate}%
+                      {broadcast.open_rate ?? 0}%
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.txt }}>
-                      {broadcast.clickRate}%
+                      {broadcast.click_rate ?? 0}%
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.txt }}>
-                      {broadcast.sentCount.toLocaleString()}
+                      Number(broadcast.sent_count || 0).toLocaleString()
                     </td>
                     <td className="py-3 px-4">
                       <span

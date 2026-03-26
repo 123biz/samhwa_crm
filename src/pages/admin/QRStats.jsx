@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AreaChart,
   Area,
@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { QrCode } from 'lucide-react';
-import { qrCodes, qrScanDaily } from '../../data/mockData';
+import { fetchQrStats } from '../../lib/data/qrStats';
 
 const QRStats = () => {
   const colors = {
@@ -38,6 +38,42 @@ const QRStats = () => {
     BANNER: '배너',
   };
 
+  const [loading, setLoading] = useState(true);
+  const [qrCodes, setQrCodes] = useState([]);
+  const [qrScanDaily, setQrScanDaily] = useState([]);
+  const [dataError, setDataError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      setDataError(false);
+      const res = await fetchQrStats({ days: 25 });
+      if (cancelled) return;
+      if (!res.ok) {
+        setDataError(true);
+        setQrCodes([]);
+        setQrScanDaily([]);
+        setLoading(false);
+        return;
+      }
+      setQrCodes(res.qrCodes);
+      setQrScanDaily(res.qrScanDaily);
+      setLoading(false);
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const totalScanCount = useMemo(
+    () => qrCodes.reduce((sum, qr) => sum + (qr.scanCount || 0), 0),
+    [qrCodes],
+  );
+
   return (
     <div className="p-6" style={{ backgroundColor: colors.bg, minHeight: '100vh' }}>
       {/* Header */}
@@ -52,7 +88,22 @@ const QRStats = () => {
 
       {/* QR Code Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {qrCodes.map((qr) => (
+        {loading && (
+          <div className="col-span-full text-center py-10 text-sm" style={{ color: colors.sub }}>
+            불러오는 중...
+          </div>
+        )}
+        {!loading && dataError && (
+          <div className="col-span-full text-center py-10 text-sm" style={{ color: colors.sub }}>
+            QR 통계 데이터를 불러오지 못했습니다. (Supabase 테이블/권한을 확인하세요)
+          </div>
+        )}
+        {!loading && !dataError && qrCodes.length === 0 && (
+          <div className="col-span-full text-center py-10 text-sm" style={{ color: colors.sub }}>
+            등록된 QR 코드가 없습니다.
+          </div>
+        )}
+        {!loading && !dataError && qrCodes.map((qr) => (
           <div
             key={qr.id}
             className="rounded-lg shadow-md p-6"
@@ -187,7 +238,7 @@ const QRStats = () => {
               총 스캔 수
             </p>
             <p className="text-2xl font-bold" style={{ color: colors.secondary }}>
-              {qrCodes.reduce((sum, qr) => sum + qr.scanCount, 0).toLocaleString()}건
+              {totalScanCount.toLocaleString()}건
             </p>
           </div>
           <div>
@@ -195,8 +246,7 @@ const QRStats = () => {
               평균 스캔율
             </p>
             <p className="text-2xl font-bold" style={{ color: colors.success }}>
-              {(qrCodes.reduce((sum, qr) => sum + qr.scanCount, 0) / qrCodes.length).toFixed(0)}
-              건
+              {qrCodes.length > 0 ? (totalScanCount / qrCodes.length).toFixed(0) : 0}건
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { products } from '../../data/mockData';
+import { supabase } from '../../lib/supabaseClient';
 
 const INITIAL_MESSAGES = [
   {
@@ -10,10 +10,12 @@ const INITIAL_MESSAGES = [
 ];
 
 export default function Chatbot() {
-  const { productId: _productId } = useParams();
+  const { productId } = useParams();
   const [step, setStep] = useState('welcome');
   const [messages, setMessages] = useState(() => INITIAL_MESSAGES);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -36,6 +38,60 @@ export default function Chatbot() {
     ]);
     setStep('selectSymptom');
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!supabase) {
+      return;
+    }
+
+    (async () => {
+      setLoading(true);
+      const res = await supabase
+        .from('products')
+        .select('id, name')
+        .order('name', { ascending: true });
+      if (cancelled) return;
+      setProducts(res.error ? [] : (res.data || []));
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!productId) return;
+    if (!supabase) return;
+    if (selectedProduct) return;
+
+    (async () => {
+      const prodRes = await supabase
+        .from('products')
+        .select('id, name')
+        .eq('id', productId)
+        .maybeSingle();
+      if (prodRes.error || !prodRes.data) return;
+
+      const symRes = await supabase
+        .from('product_symptoms')
+        .select('code, name, solution, video_url')
+        .eq('product_id', productId)
+        .order('order', { ascending: true });
+
+      const p = {
+        ...prodRes.data,
+        symptoms: (symRes.error ? [] : (symRes.data || [])).map((s) => ({
+          code: s.code,
+          name: s.name,
+          solution: s.solution,
+          videoUrl: s.video_url || '#',
+        })),
+      };
+      handleProductSelect(p);
+    })();
+  }, [productId, selectedProduct]);
 
   const handleSymptomSelect = (symptom) => {
     setMessages(prev => [
@@ -160,10 +216,30 @@ export default function Chatbot() {
       <div className="bg-white border-t border-gray-200 px-4 py-4">
         {step === 'welcome' && (
           <div className="space-y-2">
-            {products.map(product => (
+            {loading && (
+              <div className="text-center text-xs text-gray-500 py-4">불러오는 중...</div>
+            )}
+            {!loading && products.map(product => (
               <button
                 key={product.id}
-                onClick={() => handleProductSelect(product)}
+                onClick={async () => {
+                  if (!supabase) return;
+                  const symRes = await supabase
+                    .from('product_symptoms')
+                    .select('code, name, solution, video_url')
+                    .eq('product_id', product.id)
+                    .order('order', { ascending: true });
+                  const full = {
+                    ...product,
+                    symptoms: (symRes.error ? [] : (symRes.data || [])).map((s) => ({
+                      code: s.code,
+                      name: s.name,
+                      solution: s.solution,
+                      videoUrl: s.video_url || '#',
+                    })),
+                  };
+                  handleProductSelect(full);
+                }}
                 className="w-full bg-white border-2 border-[#2E75B6] text-[#2E75B6] font-semibold py-3 rounded-lg hover:bg-blue-50 transition"
               >
                 {product.name}

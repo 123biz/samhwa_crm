@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { TrendingUp } from 'lucide-react';
-import { dashboardKPI, friendsTrend, sourceDistribution, asLogs } from '../../data/mockData';
+import { supabase } from '../../lib/supabaseClient';
 
 const Dashboard = () => {
   const colors = {
@@ -17,34 +17,144 @@ const Dashboard = () => {
     border: '#CCCCCC',
   };
 
-  const kpiCards = [
+  const [kpi, setKpi] = useState({
+    totalFriends: 0,
+    friendsGrowth: 0,
+    totalCustomers: 0,
+    customersGrowth: 0,
+    chatbotAutoRate: 0,
+    chatbotGrowth: 0,
+    totalQRScans: 0,
+    qrGrowth: 0,
+  });
+  const [friendsTrend, setFriendsTrend] = useState([]);
+  const [sourceDistribution, setSourceDistribution] = useState([]);
+  const [asLogs, setAsLogs] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!supabase) return;
+
+    (async () => {
+      // 고객 수
+      const cRes = await supabase.from('customers').select('created_at, source', { count: 'exact' });
+      if (cancelled) return;
+      const customers = cRes.error ? [] : (cRes.data || []);
+      const totalCustomers = cRes.count || customers.length;
+
+      // QR 스캔 수
+      const qRes = await supabase.from('qr_logs').select('created_at', { count: 'exact' });
+      const totalQRScans = qRes.count || (qRes.error ? 0 : (qRes.data || []).length);
+
+      // AS 로그(최근 5개)
+      const asRes = await supabase
+        .from('as_logs')
+        .select('id, customer_name, product, symptom, resolved, escalated, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      if (!cancelled) setAsLogs(asRes.error ? [] : (asRes.data || []));
+
+      // source 분포
+      const srcMap = new Map();
+      for (const r of customers) {
+        const s = r.source || 'UNKNOWN';
+        srcMap.set(s, (srcMap.get(s) || 0) + 1);
+      }
+      const dist = Array.from(srcMap.entries()).map(([source, value]) => ({
+        source:
+          source === 'QR_EVENT'
+            ? 'QR 이벤트'
+            : source === 'QR_PRODUCT'
+              ? 'QR 제품'
+              : source === 'QR_BANNER'
+                ? 'QR 배너'
+                : source === 'DIRECT'
+                  ? '직접 추가'
+                  : source,
+        value,
+        color:
+          source === 'QR_EVENT'
+            ? colors.secondary
+            : source === 'QR_PRODUCT'
+              ? colors.success
+              : source === 'QR_BANNER'
+                ? colors.warning
+                : '#8E44AD',
+      }));
+      if (!cancelled) setSourceDistribution(dist);
+
+      // 월별 트렌드(최근 6개월) - registrations만 계산, friends는 0 유지(테이블이 생기면 교체)
+      const now = new Date();
+      const months = [];
+      for (let i = 5; i >= 0; i -= 1) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({ y: d.getFullYear(), m: d.getMonth() });
+      }
+      const regMap = new Map(months.map(({ y, m }) => [`${y}-${m}`, 0]));
+      for (const r of customers) {
+        if (!r.created_at) continue;
+        const d = new Date(r.created_at);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (!regMap.has(key)) continue;
+        regMap.set(key, (regMap.get(key) || 0) + 1);
+      }
+      const trend = months.map(({ y, m }) => ({
+        month: `${m + 1}월`,
+        friends: 0,
+        registrations: regMap.get(`${y}-${m}`) || 0,
+      }));
+      if (!cancelled) setFriendsTrend(trend);
+
+      // 챗봇 자동응답률(AS 로그로 대체: resolved 비율)
+      const asAllRes = await supabase.from('as_logs').select('resolved', { count: 'exact' }).limit(5000);
+      const asAll = asAllRes.error ? [] : (asAllRes.data || []);
+      const totalAs = asAllRes.count || asAll.length;
+      const resolvedCount = asAll.filter((x) => x.resolved).length;
+      const chatbotAutoRate = totalAs > 0 ? Number(((resolvedCount / totalAs) * 100).toFixed(1)) : 0;
+
+      if (!cancelled) {
+        setKpi((prev) => ({
+          ...prev,
+          totalCustomers,
+          totalQRScans,
+          chatbotAutoRate,
+        }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [colors.secondary, colors.success, colors.warning]);
+
+  const kpiCards = useMemo(() => ([
     {
       title: '카카오 친구 수',
-      value: dashboardKPI.totalFriends.toLocaleString(),
-      growth: dashboardKPI.friendsGrowth,
+      value: Number(kpi.totalFriends || 0).toLocaleString(),
+      growth: kpi.friendsGrowth || 0,
       borderColor: colors.secondary,
     },
     {
       title: '등록 고객 수',
-      value: dashboardKPI.totalCustomers.toLocaleString(),
-      growth: dashboardKPI.customersGrowth,
+      value: Number(kpi.totalCustomers || 0).toLocaleString(),
+      growth: kpi.customersGrowth || 0,
       borderColor: colors.success,
     },
     {
       title: '챗봇 자동응답률',
-      value: `${dashboardKPI.chatbotAutoRate}%`,
-      growth: dashboardKPI.chatbotGrowth,
+      value: `${kpi.chatbotAutoRate || 0}%`,
+      growth: kpi.chatbotGrowth || 0,
       borderColor: colors.warning,
     },
     {
       title: 'QR 스캔 수',
-      value: dashboardKPI.totalQRScans.toLocaleString(),
-      growth: dashboardKPI.qrGrowth,
+      value: Number(kpi.totalQRScans || 0).toLocaleString(),
+      growth: kpi.qrGrowth || 0,
       borderColor: '#16A085',
     },
-  ];
+  ]), [kpi, colors.secondary, colors.success, colors.warning]);
 
-  const recentAsLogs = asLogs.slice(0, 5);
+  const recentAsLogs = asLogs;
 
   return (
     <div className="p-6" style={{ backgroundColor: colors.bg, minHeight: '100vh' }}>

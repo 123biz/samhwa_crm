@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Save } from 'lucide-react';
-import { chatbotScenarios } from '../../data/mockData';
+import { supabase } from '../../lib/supabaseClient';
 
 const ChatbotMgmt = () => {
   const colors = {
@@ -17,8 +17,62 @@ const ChatbotMgmt = () => {
   };
 
   const [activeTab, setActiveTab] = useState(0);
-  const [editedScenarios, setEditedScenarios] = useState(chatbotScenarios);
+  const [editedScenarios, setEditedScenarios] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!supabase) return;
+
+    (async () => {
+      setLoading(true);
+      const prodRes = await supabase
+        .from('products')
+        .select('id, name')
+        .order('name', { ascending: true });
+      if (cancelled) return;
+      if (prodRes.error) {
+        setEditedScenarios([]);
+        setLoading(false);
+        return;
+      }
+
+      const products = prodRes.data || [];
+      const all = [];
+      for (const p of products) {
+        const symRes = await supabase
+          .from('product_symptoms')
+          .select('id, code, name, solution, video_url, usage_count, resolve_rate, "order"')
+          .eq('product_id', p.id)
+          .order('order', { ascending: true });
+        if (symRes.error) {
+          all.push({ productId: p.id, productName: p.name, symptoms: [] });
+          continue;
+        }
+        all.push({
+          productId: p.id,
+          productName: p.name,
+          symptoms: (symRes.data || []).map((s) => ({
+            id: s.id,
+            code: s.code,
+            name: s.name,
+            solution: s.solution,
+            videoUrl: s.video_url || '',
+            usageCount: s.usage_count ?? 0,
+            resolveRate: s.resolve_rate ?? '',
+          })),
+        });
+      }
+      setEditedScenarios(all);
+      setActiveTab(0);
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSolutionChange = (productIdx, symptomIdx, newValue) => {
     const newScenarios = [...editedScenarios];
@@ -28,9 +82,25 @@ const ChatbotMgmt = () => {
   };
 
   const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-    console.log('시나리오 저장:', editedScenarios);
+    if (!supabase) {
+      alert('Supabase 설정이 필요합니다.');
+      return;
+    }
+
+    (async () => {
+      // 변경사항을 전부 업데이트(간단 구현)
+      for (const p of editedScenarios) {
+        for (const s of p.symptoms) {
+          if (!s.id) continue;
+          await supabase
+            .from('product_symptoms')
+            .update({ solution: s.solution })
+            .eq('id', s.id);
+        }
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    })();
   };
 
   const currentProduct = editedScenarios[activeTab];
@@ -66,7 +136,12 @@ const ChatbotMgmt = () => {
           className="flex border-b"
           style={{ borderBottomColor: colors.border, borderBottomWidth: '1px' }}
         >
-          {editedScenarios.map((product, idx) => (
+          {loading && (
+            <div className="w-full text-center py-6 text-sm" style={{ color: colors.sub }}>
+              불러오는 중...
+            </div>
+          )}
+          {!loading && editedScenarios.map((product, idx) => (
             <button
               key={idx}
               onClick={() => setActiveTab(idx)}
@@ -98,7 +173,7 @@ const ChatbotMgmt = () => {
 
       {/* Symptoms Cards */}
       <div className="grid grid-cols-1 gap-6">
-        {currentProduct.symptoms.map((symptom, idx) => (
+        {!loading && currentProduct?.symptoms?.map((symptom, idx) => (
           <div
             key={idx}
             className="rounded-lg shadow-md p-6"

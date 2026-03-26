@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { asLogs, asProductStats, asSymptomStats } from '../../data/mockData';
+import { supabase } from '../../lib/supabaseClient';
 
 const ASStats = () => {
   const colors = {
@@ -27,32 +27,64 @@ const ASStats = () => {
     border: '#CCCCCC',
   };
 
+  const [asLogs, setAsLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!supabase) return;
+
+    (async () => {
+      setLoading(true);
+      const res = await supabase
+        .from('as_logs')
+        .select('id, customer_name, product, symptom, resolved, escalated, created_at')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (cancelled) return;
+      setAsLogs(res.error ? [] : (res.data || []));
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Calculate KPI statistics
   const stats = useMemo(() => {
     const totalQueries = asLogs.length;
     const resolvedCount = asLogs.filter((log) => log.resolved).length;
     const escalatedCount = asLogs.filter((log) => log.escalated).length;
-    const autoResolveRate = ((resolvedCount / totalQueries) * 100).toFixed(1);
+    const autoResolveRate = totalQueries > 0 ? ((resolvedCount / totalQueries) * 100).toFixed(1) : '0.0';
 
     return {
       totalQueries,
       autoResolveRate,
       escalatedCount,
     };
-  }, []);
+  }, [asLogs]);
 
-  // Prepare data for product bar chart (stacked)
-  const productData = asProductStats.map((item) => ({
-    product: item.product,
-    해결: item.resolved,
-    에스컬레이션: item.escalated,
-  }));
+  const productData = useMemo(() => {
+    const map = new Map();
+    for (const l of asLogs) {
+      const k = l.product || '기타';
+      const v = map.get(k) || { product: k, 해결: 0, 에스컬레이션: 0 };
+      if (l.resolved) v.해결 += 1;
+      if (l.escalated) v.에스컬레이션 += 1;
+      map.set(k, v);
+    }
+    return Array.from(map.values());
+  }, [asLogs]);
 
-  // Prepare data for symptom horizontal bar chart
-  const symptomData = asSymptomStats.map((item) => ({
-    symptom: item.symptom.substring(0, 10),
-    count: item.count,
-  }));
+  const symptomData = useMemo(() => {
+    const map = new Map();
+    for (const l of asLogs) {
+      const k = (l.symptom || '기타').substring(0, 10);
+      map.set(k, (map.get(k) || 0) + 1);
+    }
+    return Array.from(map.entries()).map(([symptom, count]) => ({ symptom, count }));
+  }, [asLogs]);
 
   // Recent AS logs
   const recentLogs = asLogs.slice(0, 10);
@@ -215,8 +247,15 @@ const ASStats = () => {
               </tr>
             </thead>
             <tbody>
+              {loading && (
+                <tr>
+                  <td className="py-6 px-4 text-center text-sm" style={{ color: colors.sub }} colSpan={6}>
+                    불러오는 중...
+                  </td>
+                </tr>
+              )}
               {recentLogs.map((log) => {
-                const date = new Date(log.createdAt).toLocaleDateString('ko-KR', {
+                const date = new Date(log.created_at).toLocaleDateString('ko-KR', {
                   month: '2-digit',
                   day: '2-digit',
                   hour: '2-digit',
@@ -246,7 +285,7 @@ const ASStats = () => {
                       {log.id}
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.txt }}>
-                      {log.customerName}
+                      {log.customer_name}
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.sub }}>
                       {log.product}

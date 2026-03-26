@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Check } from 'lucide-react';
-import { products } from '../../data/mockData';
+import { QRCodeCanvas } from 'qrcode.react';
+import { supabase } from '../../lib/supabaseClient';
 
 export default function Registration() {
   const { eventId: _eventId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const source = searchParams.get('source') || null;
+  const publicBaseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
 
   const [currentStep, setCurrentStep] = useState(1);
   const [expandedConsent, setExpandedConsent] = useState(null);
+  const [customerId, setCustomerId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [products, setProducts] = useState([]);
 
   // Step 1: Consent
   const [consents, setConsents] = useState({
@@ -25,6 +32,24 @@ export default function Registration() {
   });
 
   const [phoneFormatError, setPhoneFormatError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!supabase) return;
+
+    (async () => {
+      const res = await supabase
+        .from('products')
+        .select('id, name')
+        .order('name', { ascending: true });
+      if (cancelled) return;
+      setProducts(res.error ? [] : (res.data || []));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Consent handlers
   const handleMasterConsent = () => {
@@ -70,9 +95,55 @@ export default function Registration() {
   const canSubmitForm = formData.name && /^010-\d{4}-\d{4}$/.test(formData.phone);
 
   // Submit form
-  const handleSubmit = () => {
-    if (canSubmitForm) {
+  const handleSubmit = async () => {
+    if (!canSubmitForm) return;
+    if (!supabase) {
+      alert('Supabase 설정이 필요합니다. VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY를 확인하세요.');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      // 연락처 중복 체크
+      const existing = await supabase
+        .from('customers')
+        .select('id')
+        .eq('phone', formData.phone)
+        .maybeSingle();
+
+      if (existing.error) throw existing.error;
+      if (existing.data) {
+        alert('이미 등록된 연락처입니다.');
+        return;
+      }
+
+      const productsOwned =
+        formData.product && formData.product !== 'none' ? [formData.product] : [];
+
+      // 고객 등록
+      const inserted = await supabase
+        .from('customers')
+        .insert({
+          name: formData.name,
+          phone: formData.phone,
+          products_owned: productsOwned,
+          interests: formData.interests,
+          source,
+          gift_status: 'pending',
+          claimed_at: null,
+        })
+        .select('id')
+        .single();
+
+      if (inserted.error) throw inserted.error;
+
+      setCustomerId(inserted.data.id);
       setCurrentStep(3);
+    } catch {
+      alert('등록에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -292,7 +363,7 @@ export default function Registration() {
             {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              disabled={!canSubmitForm}
+              disabled={!canSubmitForm || isSaving}
               className={`w-full font-bold py-3 rounded-lg mt-6 transition ${
                 canSubmitForm
                   ? 'bg-[#1B3A5C] text-white hover:bg-[#152a47]'
@@ -328,6 +399,40 @@ export default function Registration() {
                 사은품은 삼화메디칼 부스에서 수령해 주세요.
               </p>
             </div>
+
+            <button
+              type="button"
+              disabled={!customerId}
+              className={`w-full font-bold py-3 rounded-lg mb-3 transition ${
+                customerId
+                  ? 'bg-[#FEE500] text-gray-900 hover:bg-[#FDD835]'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+              onClick={() => {
+                // 추후 카카오 채널 링크/검증 로직 연결 예정
+                if (!customerId) return;
+                alert('카카오톡 친구 추가 버튼이 활성화되었습니다. (링크 연결은 추후 적용)');
+              }}
+            >
+              카카오톡 친구 추가
+            </button>
+
+            {customerId && (
+              <div className="mx-auto max-w-[320px] bg-white border border-gray-200 rounded-lg p-4 mb-6">
+                <div className="text-center mb-3">
+                  <div className="font-bold text-[#1B3A5C] text-sm mb-1">검증용 QR</div>
+                  <div className="text-xs text-gray-500">직원이 QR을 스캔해 사은품 지급을 완료합니다.</div>
+                </div>
+                <div className="flex items-center justify-center">
+                  {(() => {
+                    const base = import.meta.env.BASE_URL === './' ? '/' : import.meta.env.BASE_URL;
+                    const baseTrim = base.endsWith('/') ? base.slice(0, -1) : base;
+                    const verifyUrl = `${publicBaseUrl}${baseTrim}/staff/verify?id=${customerId}`;
+                    return <QRCodeCanvas value={verifyUrl} size={180} includeMargin={false} />;
+                  })()}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={handleReset}

@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { customers } from '../../data/mockData';
+import { supabase } from '../../lib/supabaseClient';
 
 const CustomerDB = () => {
   const colors = {
@@ -21,6 +21,9 @@ const CustomerDB = () => {
   const [sourceFilter, setSourceFilter] = useState('전체');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
 
   const segmentBadgeColors = {
     BUYER: '#2E75B6',
@@ -35,25 +38,55 @@ const CustomerDB = () => {
     DIRECT: '직접 추가',
   };
 
-  // Filter data
-  const filteredData = useMemo(() => {
-    return customers.filter((customer) => {
-      const matchesSearch =
-        customer.name.includes(searchTerm) ||
-        customer.id.includes(searchTerm) ||
-        customer.phone.includes(searchTerm);
-      const matchesSegment =
-        segmentFilter === '전체' || customer.segment === segmentFilter;
-      const matchesSource =
-        sourceFilter === '전체' || customer.source === sourceFilter;
-      return matchesSearch && matchesSegment && matchesSource;
-    });
-  }, [searchTerm, segmentFilter, sourceFilter]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!supabase) {
+      return;
+    }
+
+    (async () => {
+      setLoading(true);
+
+      let q = supabase
+        .from('customers')
+        .select('id, name, phone, segment, source, products_owned, marketing_consent, created_at', { count: 'exact' })
+        .order('created_at', { ascending: false });
+
+      if (segmentFilter !== '전체') q = q.eq('segment', segmentFilter);
+      if (sourceFilter !== '전체') q = q.eq('source', sourceFilter);
+
+      const term = searchTerm.trim();
+      if (term) {
+        // name/phone/id 중 하나라도 매칭
+        q = q.or(`name.ilike.%${term}%,phone.ilike.%${term}%,id.ilike.%${term}%`);
+      }
+
+      const from = (currentPage - 1) * pageSize;
+      const to = from + pageSize - 1;
+      q = q.range(from, to);
+
+      const res = await q;
+      if (cancelled) return;
+
+      if (res.error) {
+        setRows([]);
+        setTotalCount(0);
+        setLoading(false);
+        return;
+      }
+
+      setRows(res.data || []);
+      setTotalCount(res.count || 0);
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchTerm, segmentFilter, sourceFilter, currentPage]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredData.length / pageSize);
-  const startIdx = (currentPage - 1) * pageSize;
-  const paginatedData = filteredData.slice(startIdx, startIdx + pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
     <div className="p-6" style={{ backgroundColor: colors.bg, minHeight: '100vh' }}>
@@ -157,7 +190,7 @@ const CustomerDB = () => {
       {/* Results Count */}
       <div className="mb-4" style={{ color: colors.sub }}>
         <p className="text-sm">
-          총 <span className="font-semibold">{filteredData.length}</span>명의 고객이 조회되었습니다.
+          총 <span className="font-semibold">{totalCount}</span>명의 고객이 조회되었습니다.
         </p>
       </div>
 
@@ -203,7 +236,7 @@ const CustomerDB = () => {
               </tr>
             </thead>
             <tbody>
-              {paginatedData.map((customer) => (
+              {rows.map((customer) => (
                 <tr
                   key={customer.id}
                   style={{
@@ -234,20 +267,20 @@ const CustomerDB = () => {
                     {sourceLabels[customer.source]}
                   </td>
                   <td className="py-3 px-4" style={{ color: colors.sub }}>
-                    {customer.productsOwned.join(', ')}
+                    {(customer.products_owned || []).join(', ')}
                   </td>
                   <td className="py-3 px-4 text-center">
                     <span
                       style={{
-                        color: customer.marketingConsent ? colors.success : colors.error,
+                        color: customer.marketing_consent ? colors.success : colors.error,
                         fontSize: '18px',
                       }}
                     >
-                      {customer.marketingConsent ? '✓' : '✗'}
+                      {customer.marketing_consent ? '✓' : '✗'}
                     </span>
                   </td>
                   <td className="py-3 px-4" style={{ color: colors.sub }}>
-                    {customer.createdAt}
+                    {String(customer.created_at || '').slice(0, 10)}
                   </td>
                 </tr>
               ))}
@@ -257,7 +290,7 @@ const CustomerDB = () => {
       </div>
 
       {/* Pagination */}
-      {filteredData.length > 0 && (
+      {totalCount > 0 && (
         <div className="flex items-center justify-between mt-6">
           <div style={{ color: colors.sub }} className="text-sm">
             {currentPage} / {totalPages} 페이지
@@ -293,7 +326,7 @@ const CustomerDB = () => {
         </div>
       )}
 
-      {filteredData.length === 0 && (
+      {!loading && totalCount === 0 && (
         <div className="text-center py-12" style={{ color: colors.sub }}>
           <p>조회 결과가 없습니다.</p>
         </div>
