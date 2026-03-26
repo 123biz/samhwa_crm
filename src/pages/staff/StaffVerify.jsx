@@ -133,7 +133,11 @@ export default function StaffVerify() {
               <div className="text-center text-xs text-gray-500 pt-2">지급 완료 처리되었습니다.</div>
             )}
             {claimStatus === 'already_claimed' && (
-              <div className="text-center text-xs text-gray-500 pt-2">이미 지급된 고객입니다.</div>
+              <div className="text-center pt-2">
+                <div className="inline-block rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-lg font-extrabold text-red-600">
+                  이미 지급된 고객입니다.
+                </div>
+              </div>
             )}
           </div>
         )}
