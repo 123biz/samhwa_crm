@@ -95,8 +95,8 @@ export default function EventLanding() {
         <p className="text-lg text-blue-100">{event.subtitle}</p>
       </div>
 
-      {/* Test QR (DEV only) */}
-      {import.meta.env.DEV && (
+      {/* Test QR */}
+      {
         <div className="bg-white border-b border-gray-200 px-4 py-6 text-center">
           <div className="font-bold text-[#1B3A5C] mb-2">테스트용 QR</div>
           <p className="text-xs text-gray-500 mb-4">
@@ -114,7 +114,7 @@ export default function EventLanding() {
             source: {testSource}
           </div>
         </div>
-      )}
+      }
 
       {/* Step Guide */}
       <div className="px-4 py-8 bg-white mb-4">
