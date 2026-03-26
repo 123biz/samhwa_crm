@@ -105,6 +105,24 @@ export default function Registration() {
     try {
       setIsSaving(true);
 
+      // 연락처 중복 체크
+      const existing = await supabase
+        .from('customers')
+        .select('id')
+        .eq('phone', formData.phone)
+        .maybeSingle();
+
+      if (existing.error) {
+        console.error('customers duplicate check failed', existing.error);
+        alert(`중복 체크 실패: ${existing.error?.message || '알 수 없는 오류'}`);
+        return;
+      }
+
+      if (existing.data) {
+        alert('이미 등록된 연락처입니다.');
+        return;
+      }
+
       const productsOwned =
         formData.product && formData.product !== 'none' ? [formData.product] : [];
 
@@ -124,13 +142,20 @@ export default function Registration() {
         .select('id')
         .single();
 
-      if (inserted.error) throw inserted.error;
+      if (inserted.error) {
+        // 테스트 단계에서 원인을 바로 알 수 있게 DB 에러를 노출합니다.
+        // 흔한 케이스: phone UNIQUE 제약 위반, 컬럼/제약 불일치 등
+        console.error('customers insert failed', inserted.error);
+        const msg = inserted.error?.message || '등록에 실패했습니다.';
+        alert(`등록 실패: ${msg}`);
+        return;
+      }
 
       setCustomerId(inserted.data.id);
       setFriendAdded(false);
       setCurrentStep(3);
     } catch {
-      alert('등록에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      alert('등록에 실패했습니다. (네트워크/권한/스키마를 확인해 주세요)');
     } finally {
       setIsSaving(false);
     }

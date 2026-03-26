@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { formatKstDate } from '../../lib/time/kst';
 
 const CustomerDB = () => {
   const colors = {
@@ -280,7 +281,7 @@ const CustomerDB = () => {
                     </span>
                   </td>
                   <td className="py-3 px-4" style={{ color: colors.sub }}>
-                    {String(customer.created_at || '').slice(0, 10)}
+                    {formatKstDate(customer.created_at)}
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { formatKstDateTime } from '../../lib/time/kst';
 
 const BroadcastMgmt = () => {
   const colors = {
@@ -189,7 +190,7 @@ const BroadcastMgmt = () => {
                       </span>
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.sub }}>
-                      {broadcast.sent_at ? String(broadcast.sent_at).slice(0, 16).replace('T', ' ') : '-'}
+                      {formatKstDateTime(broadcast.sent_at)}
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.txt }}>
                       {broadcast.open_rate ?? 0}%

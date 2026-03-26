@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { formatKstDate } from '../time/kst';
 
 function isoDateKey(d) {
   const y = d.getFullYear();
@@ -43,7 +44,7 @@ export async function fetchQrStats({ days = 25 } = {}) {
     id: r.id,
     type: r.type,
     target: r.target,
-    createdAt: r.created_at ? String(r.created_at).slice(0, 10) : '-',
+    createdAt: formatKstDate(r.created_at),
     scanCount: 0,
   }));
 

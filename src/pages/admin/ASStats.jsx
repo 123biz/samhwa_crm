@@ -12,6 +12,7 @@ import {
   Cell,
 } from 'recharts';
 import { supabase } from '../../lib/supabaseClient';
+import { formatKstDateTime } from '../../lib/time/kst';
 
 const ASStats = () => {
   const colors = {
@@ -255,12 +256,7 @@ const ASStats = () => {
                 </tr>
               )}
               {recentLogs.map((log) => {
-                const date = new Date(log.created_at).toLocaleDateString('ko-KR', {
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                });
+                const date = formatKstDateTime(log.created_at);
 
                 let statusColor = colors.warning;
                 let statusText = '미해결';
