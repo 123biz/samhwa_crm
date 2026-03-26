@@ -85,7 +85,15 @@ export default function EventLanding() {
     busan2026: 'QR_EVENT_BUSAN_2026',
   };
   const testSource = source || testSourceByEventId[eventId] || 'QR_EVENT_KINTEX_2026';
-  const publicBaseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
+  const publicBaseUrl = (() => {
+    const raw = import.meta.env.VITE_PUBLIC_APP_URL;
+    if (!raw) return window.location.origin;
+    try {
+      return new URL(raw).origin;
+    } catch {
+      return raw.replace(/\/+$/, '');
+    }
+  })();
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-[#F8F9FA]">
@@ -112,6 +120,13 @@ export default function EventLanding() {
           </div>
           <div className="mt-3 text-xs text-gray-500 break-all">
             source: {testSource}
+          </div>
+          <div className="mt-2 text-[10px] text-gray-400 break-all">
+            {(() => {
+              const base = import.meta.env.BASE_URL === './' ? '/' : import.meta.env.BASE_URL;
+              const baseTrim = base.endsWith('/') ? base.slice(0, -1) : base;
+              return `${publicBaseUrl}${baseTrim}/landing/${eventId}?source=${encodeURIComponent(testSource)}`;
+            })()}
           </div>
         </div>
       }

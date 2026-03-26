@@ -9,7 +9,15 @@ export default function Registration() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const source = searchParams.get('source') || null;
-  const publicBaseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
+  const publicBaseUrl = (() => {
+    const raw = import.meta.env.VITE_PUBLIC_APP_URL;
+    if (!raw) return window.location.origin;
+    try {
+      return new URL(raw).origin;
+    } catch {
+      return raw.replace(/\/+$/, '');
+    }
+  })();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [customerId, setCustomerId] = useState(null);
