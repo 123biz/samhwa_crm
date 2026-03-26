@@ -26,27 +26,31 @@ export default function EventLanding() {
   const event = eventData[eventId] || eventData.kintex2026;
 
   useEffect(() => {
-    if (!source) return;
     if (didLogRef.current) return;
     didLogRef.current = true;
 
     if (!supabase) return;
 
     (async () => {
-      // source -> qr_codes 매핑이 있으면 qr_code_id까지 같이 저장
-      const codeRes = await supabase
-        .from('qr_codes')
-        .select('id')
-        .eq('source', source)
-        .maybeSingle();
+      const effectiveSource = source || 'DIRECT';
 
-      const qrCodeId = !codeRes.error ? codeRes.data?.id ?? null : null;
+      // source -> qr_codes 매핑이 있으면 qr_code_id까지 같이 저장
+      // DIRECT 유입은 매핑하지 않습니다.
+      let qrCodeId = null;
+      if (source) {
+        const codeRes = await supabase
+          .from('qr_codes')
+          .select('id')
+          .eq('source', source)
+          .maybeSingle();
+        qrCodeId = !codeRes.error ? codeRes.data?.id ?? null : null;
+      }
 
       await supabase
         .from('qr_logs')
         .insert({
           created_at: new Date().toISOString(),
-          source,
+          source: effectiveSource,
           qr_code_id: qrCodeId,
         });
     })().catch(() => {

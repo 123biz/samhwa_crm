@@ -26,10 +26,24 @@ export async function fetchQrStats({ days = 25 } = {}) {
 
   // 1) QR 코드 정의 목록
   // 기대 컬럼: id, type(PRODUCT|EVENT|BANNER), target, created_at(or createdAt), source(optional)
-  const qrRes = await supabase
+  // destination_url 컬럼이 아직 없는 DB도 있을 수 있어, 실패 시 구버전 쿼리로 폴백합니다.
+  let qrRes = await supabase
     .from('qr_codes')
-    .select('id, type, target, created_at')
+    .select('id, type, target, source, destination_url, created_at')
     .order('created_at', { ascending: false });
+
+  if (qrRes.error) {
+    const msg = String(qrRes.error?.message || '');
+    const missingDestinationUrl =
+      msg.includes('destination_url') && (msg.includes('does not exist') || msg.includes('not found'));
+
+    if (missingDestinationUrl) {
+      qrRes = await supabase
+        .from('qr_codes')
+        .select('id, type, target, source, created_at')
+        .order('created_at', { ascending: false });
+    }
+  }
 
   if (qrRes.error) {
     return {
@@ -44,6 +58,8 @@ export async function fetchQrStats({ days = 25 } = {}) {
     id: r.id,
     type: r.type,
     target: r.target,
+    source: r.source,
+    destinationUrl: r.destination_url ?? null,
     createdAt: formatKstDate(r.created_at),
     scanCount: 0,
   }));

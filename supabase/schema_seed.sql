@@ -40,6 +40,7 @@ create table if not exists public.qr_codes (
   created_at timestamptz not null default now(),
   type text not null check (type in ('PRODUCT','EVENT','BANNER')),
   target text not null,
+  destination_url text not null,
   source text unique
 );
 

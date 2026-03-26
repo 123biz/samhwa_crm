@@ -14,6 +14,11 @@ const navItems = [
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedEventId, setSelectedEventId] = useState('kintex2026');
+  const eventOptions = [
+    { id: 'kintex2026', label: '2026 킨텍스 건강박람회' },
+    { id: 'busan2026', label: '2026 부산 메디카 엑스포' },
+  ];
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -57,10 +62,33 @@ export default function AdminLayout() {
         {sidebarOpen && (
           <div className="px-4 py-3 border-t border-white/10">
             <p className="text-xs text-white/40 mb-2 font-semibold">모바일 미리보기</p>
-            <Link to="/product/body_love" target="_blank" className="block text-xs text-white/60 hover:text-white py-1 no-underline">📱 제품 상세페이지</Link>
-            <Link to="/chatbot" target="_blank" className="block text-xs text-white/60 hover:text-white py-1 no-underline">💬 AS 챗봇</Link>
-            <Link to="/landing/kintex2026" target="_blank" className="block text-xs text-white/60 hover:text-white py-1 no-underline">📋 이벤트 랜딩</Link>
+            <div className="py-1">
+              <div className="text-xs text-white/60 font-semibold mb-1">
+                📋 이벤트 랜딩
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedEventId}
+                  onChange={(e) => setSelectedEventId(e.target.value)}
+                  className="flex-1 rounded-md bg-white/10 text-white text-xs px-2 py-1 border border-white/15 focus:outline-none"
+                >
+                  {eventOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id} className="text-black">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <Link
+                  to={`/landing/${selectedEventId}`}
+                  target="_blank"
+                  className="text-xs text-white/70 hover:text-white no-underline font-semibold"
+                >
+                  열기
+                </Link>
+              </div>
+            </div>
             <Link to="/register" target="_blank" className="block text-xs text-white/60 hover:text-white py-1 no-underline">✍️ 고객등록 폼</Link>
+            <Link to="/chatbot" target="_blank" className="block text-xs text-white/60 hover:text-white py-1 no-underline">💬 AS 챗봇</Link>
           </div>
         )}
 
