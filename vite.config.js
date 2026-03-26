@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   clearScreen: false,
   plugins: [react(), tailwindcss()],
-  base: './',
+  base: '/',
   resolve: {
     dedupe: ['react', 'react-dom'],
   },
