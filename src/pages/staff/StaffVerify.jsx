@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
+import { formatKstDateTime } from '../../lib/time/kst';
 
 export default function StaffVerify() {
   const [searchParams] = useSearchParams();
@@ -9,6 +10,7 @@ export default function StaffVerify() {
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [claimStatus, setClaimStatus] = useState(null); // 'claimed_now' | 'already_claimed' | null
 
   useEffect(() => {
     let cancelled = false;
@@ -16,6 +18,7 @@ export default function StaffVerify() {
     const load = async () => {
       setLoading(true);
       setErrorMsg(null);
+      setClaimStatus(null);
       if (!id) {
         setCustomer(null);
         setLoading(false);
@@ -44,8 +47,10 @@ export default function StaffVerify() {
       const row = res.data || null;
       setCustomer(row);
 
-      // 스캔(접속)만으로 지급 완료 처리
-      if (row && row.gift_status !== 'claimed') {
+      // 스캔(접속)만으로 지급 완료 처리 + "이번 스캔에서 처리됨" / "이미 처리됨" 구분
+      if (row && row.gift_status === 'claimed') {
+        setClaimStatus('already_claimed');
+      } else if (row && row.gift_status !== 'claimed') {
         const now = new Date().toISOString();
         const upd = await supabase
           .from('customers')
@@ -54,8 +59,11 @@ export default function StaffVerify() {
           .select('id, name, phone, gift_status, claimed_at')
           .maybeSingle();
 
-        if (!cancelled && !upd.error) {
-          setCustomer(upd.data || row);
+        if (cancelled) return;
+
+        if (!upd.error && upd.data) {
+          setCustomer(upd.data);
+          setClaimStatus('claimed_now');
         }
       }
       setLoading(false);
@@ -114,12 +122,18 @@ export default function StaffVerify() {
               <div className={`text-lg font-bold ${isClaimed ? 'text-[#27AE60]' : 'text-[#E67E22]'}`}>
                 {isClaimed ? '지급 완료' : '지급 대기'}
               </div>
+              {isClaimed && (
+                <div className="mt-2 text-xs text-gray-500">
+                  처리 시각: {formatKstDateTime(customer.claimed_at)}
+                </div>
+              )}
             </div>
 
-            {isClaimed && (
-              <div className="text-center text-xs text-gray-500 pt-2">
-                지급 완료 처리되었습니다.
-              </div>
+            {claimStatus === 'claimed_now' && (
+              <div className="text-center text-xs text-gray-500 pt-2">지급 완료 처리되었습니다.</div>
+            )}
+            {claimStatus === 'already_claimed' && (
+              <div className="text-center text-xs text-gray-500 pt-2">이미 지급된 고객입니다.</div>
             )}
           </div>
         )}
