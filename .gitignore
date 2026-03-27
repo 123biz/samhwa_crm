@@ -20,6 +20,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# Supabase local temp artifacts
+supabase/.temp/
+
 # Editor
 .vscode/*
 !.vscode/extensions.json
