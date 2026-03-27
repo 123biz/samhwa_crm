@@ -59,11 +59,44 @@ const QRStats = () => {
   })();
 
   const DEFAULT_EVENT_ID = 'kintex2026';
+  const PLACEHOLDER_HOST = 'your-domain.com';
+
+  const normalizeDestinationUrl = (rawUrl) => {
+    if (!rawUrl) return null;
+
+    // Relative URL is promoted to current public base URL.
+    if (rawUrl.startsWith('/')) return `${publicBaseUrl}${rawUrl}`;
+
+    try {
+      const u = new URL(rawUrl);
+      // Replace placeholder host with current deployment host automatically.
+      if (u.host === PLACEHOLDER_HOST) return `${publicBaseUrl}${u.pathname}${u.search}`;
+      return rawUrl;
+    } catch {
+      return null;
+    }
+  };
+
+  const inferEventIdFromQr = (qr) => {
+    const source = String(qr?.source || '').toUpperCase();
+    const target = String(qr?.target || '');
+
+    if (source.includes('BUSAN') || target.includes('부산')) return 'busan2026';
+    if (source.includes('KINTEX') || target.includes('킨텍스')) return 'kintex2026';
+    return DEFAULT_EVENT_ID;
+  };
 
   const buildQrUrl = (qr) => {
-    if (qr?.destinationUrl) return qr.destinationUrl;
+    const normalized = normalizeDestinationUrl(qr?.destinationUrl || '');
+    if (normalized) return normalized;
     if (!qr?.source) return null;
-    return `${publicBaseUrl}/landing/${DEFAULT_EVENT_ID}?source=${encodeURIComponent(qr.source)}`;
+
+    if (qr.type === 'PRODUCT' && qr.target) {
+      return `${publicBaseUrl}/product/${encodeURIComponent(qr.target)}?source=${encodeURIComponent(qr.source)}`;
+    }
+
+    const eventId = inferEventIdFromQr(qr);
+    return `${publicBaseUrl}/landing/${eventId}?source=${encodeURIComponent(qr.source)}`;
   };
 
   const downloadQrSvg = (qr) => {
@@ -214,14 +247,20 @@ const QRStats = () => {
       alert('Supabase 설정이 필요합니다.');
       return;
     }
-    if (!createForm.destinationUrl) {
-      alert('destination_url(목적지 URL)을 입력해 주세요.');
-      return;
-    }
     const type = createForm.type;
     const target = type === 'PRODUCT' ? createForm.productId : createForm.target;
     if (!target) {
       alert('target을 입력/선택해 주세요.');
+      return;
+    }
+    const destinationUrl = createForm.destinationUrl || buildQrUrl({
+      type,
+      target,
+      source: createForm.source || null,
+      destinationUrl: null,
+    });
+    if (!destinationUrl) {
+      alert('QR URL을 생성할 수 없습니다. source를 확인해 주세요.');
       return;
     }
     try {
@@ -232,7 +271,7 @@ const QRStats = () => {
           type,
           target,
           source: createForm.source ? createForm.source : null,
-          destination_url: createForm.destinationUrl,
+          destination_url: destinationUrl,
         })
         .select('id')
         .single();
@@ -255,14 +294,20 @@ const QRStats = () => {
       return;
     }
     if (!editing || !editForm) return;
-    if (!editForm.destinationUrl) {
-      alert('destination_url(목적지 URL)을 입력해 주세요.');
-      return;
-    }
     const type = editForm.type;
     const target = type === 'PRODUCT' ? editForm.productId : editForm.target;
     if (!target) {
       alert('target을 입력/선택해 주세요.');
+      return;
+    }
+    const destinationUrl = editForm.destinationUrl || buildQrUrl({
+      type,
+      target,
+      source: editForm.source || null,
+      destinationUrl: null,
+    });
+    if (!destinationUrl) {
+      alert('QR URL을 생성할 수 없습니다. source를 확인해 주세요.');
       return;
     }
     try {
@@ -273,7 +318,7 @@ const QRStats = () => {
           type,
           target,
           source: editForm.source ? editForm.source : null,
-          destination_url: editForm.destinationUrl,
+          destination_url: destinationUrl,
         })
         .eq('id', editing.id);
       if (res.error) {

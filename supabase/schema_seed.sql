@@ -97,6 +97,7 @@ create index if not exists broadcasts_reserved_at_idx on public.broadcasts(reser
 create table if not exists public.as_logs (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
+  ticket_no text not null unique,
   customer_name text,
   product text,
   symptom text,
@@ -105,6 +106,54 @@ create table if not exists public.as_logs (
 );
 
 create index if not exists as_logs_created_at_idx on public.as_logs(created_at desc);
+
+create or replace function public.generate_as_ticket_no(p_created_at timestamptz default now())
+returns text
+language plpgsql
+as $$
+declare
+  v_date text;
+  v_prefix text;
+  v_next integer;
+begin
+  v_date := to_char(timezone('Asia/Seoul', coalesce(p_created_at, now())), 'YYYYMMDD');
+  v_prefix := 'AS-' || v_date;
+  perform pg_advisory_xact_lock(hashtext(v_prefix));
+
+  select coalesce(
+    max(
+      case
+        when ticket_no ~ ('^' || v_prefix || '-[0-9]{3}$')
+          then right(ticket_no, 3)::integer
+        else null
+      end
+    ),
+    0
+  ) + 1
+  into v_next
+  from public.as_logs;
+
+  return v_prefix || '-' || lpad(v_next::text, 3, '0');
+end;
+$$;
+
+create or replace function public.as_logs_set_ticket_no()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.ticket_no is null or btrim(new.ticket_no) = '' then
+    new.ticket_no := public.generate_as_ticket_no(new.created_at);
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_as_logs_set_ticket_no on public.as_logs;
+create trigger trg_as_logs_set_ticket_no
+before insert on public.as_logs
+for each row
+execute function public.as_logs_set_ticket_no();
 
 -- 2) Minimal seed data (idempotent-ish)
 
@@ -146,10 +195,10 @@ values
 on conflict do nothing;
 
 -- AS logs sample
-insert into public.as_logs (customer_name, product, symptom, resolved, escalated, created_at)
+insert into public.as_logs (ticket_no, customer_name, product, symptom, resolved, escalated, created_at)
 values
-  ('김영희', '바디러브', '충전 안 됨', true, false, now() - interval '2 days'),
-  ('이철수', '발목 펌핑 운동기', '부품 파손/마모', false, true, now() - interval '1 days'),
-  ('박미영', '퍼펙트건', '작동법 미숙지', true, false, now() - interval '4 hours')
-on conflict do nothing;
+  (public.generate_as_ticket_no(now() - interval '2 days'), '김영희', '바디러브', '충전 안 됨', true, false, now() - interval '2 days'),
+  (public.generate_as_ticket_no(now() - interval '1 days'), '이철수', '발목 펌핑 운동기', '부품 파손/마모', false, true, now() - interval '1 days'),
+  (public.generate_as_ticket_no(now() - interval '4 hours'), '박미영', '퍼펙트건', '작동법 미숙지', true, false, now() - interval '4 hours')
+on conflict (ticket_no) do nothing;
 

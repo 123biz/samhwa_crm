@@ -4,11 +4,11 @@ import { LayoutDashboard, Users, Send, BarChart3, Headphones, QrCode, Bot, Menu,
 
 const navItems = [
   { to: '/admin', icon: LayoutDashboard, label: '대시보드', end: true },
+  { to: '/admin/qr-stats', icon: QrCode, label: 'QR 스캔 통계' },
   { to: '/admin/customers', icon: Users, label: '고객 DB 관리' },
   { to: '/admin/broadcast', icon: Send, label: '발신 관리' },
   { to: '/admin/analytics', icon: BarChart3, label: '발신 효과 분석' },
   { to: '/admin/as-stats', icon: Headphones, label: 'AS 통계' },
-  { to: '/admin/qr-stats', icon: QrCode, label: 'QR 스캔 통계' },
   { to: '/admin/chatbot', icon: Bot, label: '챗봇 시나리오' },
 ];
 
@@ -61,9 +61,9 @@ export default function AdminLayout() {
         {/* Mobile Pages Links */}
         {sidebarOpen && (
           <div className="px-4 py-3 border-t border-white/10">
-            <p className="text-xs text-white/40 mb-2 font-semibold">모바일 미리보기</p>
+            <p className="text-sm text-white/40 mb-2 font-semibold">모바일 미리보기</p>
             <div className="py-1">
-              <div className="text-xs text-white/60 font-semibold mb-1">
+              <div className="text-sm text-white/60 font-semibold mb-1">
                 📋 이벤트 랜딩
               </div>
               <div className="flex items-center gap-2">
@@ -81,14 +81,14 @@ export default function AdminLayout() {
                 <Link
                   to={`/landing/${selectedEventId}`}
                   target="_blank"
-                  className="text-xs text-white/70 hover:text-white no-underline font-semibold"
+                  className="text-sm text-white/70 hover:text-white no-underline font-semibold"
                 >
                   열기
                 </Link>
               </div>
             </div>
-            <Link to="/register" target="_blank" className="block text-xs text-white/60 hover:text-white py-1 no-underline">✍️ 고객등록 폼</Link>
-            <Link to="/chatbot" target="_blank" className="block text-xs text-white/60 hover:text-white py-1 no-underline">💬 AS 챗봇</Link>
+            <Link to="/register" target="_blank" className="block text-sm text-white/60 hover:text-white py-1 no-underline">✍️ 고객등록 폼</Link>
+            <Link to="/chatbot" target="_blank" className="block text-sm text-white/60 hover:text-white py-1 no-underline">💬 AS 챗봇</Link>
           </div>
         )}
 

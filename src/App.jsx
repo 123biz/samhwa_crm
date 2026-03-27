@@ -8,6 +8,7 @@ import ASStats from './pages/admin/ASStats';
 import QRStats from './pages/admin/QRStats';
 import ChatbotMgmt from './pages/admin/ChatbotMgmt';
 import ProductDetail from './pages/mobile/ProductDetail';
+import Catalog from './pages/mobile/Catalog';
 import Registration from './pages/mobile/Registration';
 import Chatbot from './pages/mobile/Chatbot';
 import EventLanding from './pages/mobile/EventLanding';
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="chatbot" element={<ChatbotMgmt />} />
         </Route>
         <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/catalog" element={<Catalog />} />
         <Route path="/register" element={<Registration />} />
         <Route path="/register/:eventId" element={<Registration />} />
         <Route path="/chatbot" element={<Chatbot />} />

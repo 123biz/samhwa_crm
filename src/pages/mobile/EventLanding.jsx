@@ -20,6 +20,7 @@ export default function EventLanding() {
   const [searchParams] = useSearchParams();
   const source = searchParams.get('source') || null;
   const [products, setProducts] = useState([]);
+  const [eventQr, setEventQr] = useState(null);
 
   const didLogRef = useRef(false);
 
@@ -88,7 +89,7 @@ export default function EventLanding() {
     kintex2026: 'QR_EVENT_KINTEX_2026',
     busan2026: 'QR_EVENT_BUSAN_2026',
   };
-  const testSource = source || testSourceByEventId[eventId] || 'QR_EVENT_KINTEX_2026';
+  const expectedSource = testSourceByEventId[eventId] || 'QR_EVENT_KINTEX_2026';
   const publicBaseUrl = (() => {
     const raw = import.meta.env.VITE_PUBLIC_APP_URL;
     if (!raw) return window.location.origin;
@@ -98,6 +99,45 @@ export default function EventLanding() {
       return raw.replace(/\/+$/, '');
     }
   })();
+
+  const resolveQrUrl = (rawUrl, fallbackSource) => {
+    if (rawUrl) {
+      if (rawUrl.startsWith('/')) return `${publicBaseUrl}${rawUrl}`;
+      try {
+        const u = new URL(rawUrl);
+        if (u.host === 'your-domain.com') return `${publicBaseUrl}${u.pathname}${u.search}`;
+        return rawUrl;
+      } catch {
+        // ignore and fallback below
+      }
+    }
+    return `${publicBaseUrl}/landing/${eventId}?source=${encodeURIComponent(fallbackSource)}`;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!supabase) {
+      setEventQr(null);
+      return;
+    }
+
+    (async () => {
+      const res = await supabase
+        .from('qr_codes')
+        .select('source, destination_url')
+        .eq('source', expectedSource)
+        .maybeSingle();
+      if (cancelled) return;
+      setEventQr(res.error ? null : (res.data || null));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [expectedSource]);
+
+  const testSource = eventQr?.source || source || expectedSource;
+  const testQrUrl = resolveQrUrl(eventQr?.destination_url, testSource);
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-[#F8F9FA]">
@@ -110,27 +150,13 @@ export default function EventLanding() {
       {/* Test QR */}
       {
         <div className="bg-white border-b border-gray-200 px-4 py-6 text-center">
-          <div className="font-bold text-[#1B3A5C] mb-2">테스트용 QR</div>
-          <p className="text-xs text-gray-500 mb-4">
-            휴대폰으로 스캔하면 `source` 포함 랜딩으로 진입하며 `qr_logs`가 기록됩니다.
-          </p>
           <div className="flex items-center justify-center">
             {(() => {
-              const base = import.meta.env.BASE_URL === './' ? '/' : import.meta.env.BASE_URL;
-              const baseTrim = base.endsWith('/') ? base.slice(0, -1) : base;
-              const url = `${publicBaseUrl}${baseTrim}/landing/${eventId}?source=${encodeURIComponent(testSource)}`;
-              return <QRCodeCanvas value={url} size={180} includeMargin={false} />;
+              return <QRCodeCanvas value={testQrUrl} size={180} includeMargin={false} />;
             })()}
           </div>
           <div className="mt-3 text-xs text-gray-500 break-all">
             source: {testSource}
-          </div>
-          <div className="mt-2 text-[10px] text-gray-400 break-all">
-            {(() => {
-              const base = import.meta.env.BASE_URL === './' ? '/' : import.meta.env.BASE_URL;
-              const baseTrim = base.endsWith('/') ? base.slice(0, -1) : base;
-              return `${publicBaseUrl}${baseTrim}/landing/${eventId}?source=${encodeURIComponent(testSource)}`;
-            })()}
           </div>
         </div>
       }

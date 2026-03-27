@@ -39,7 +39,7 @@ const ASStats = () => {
       setLoading(true);
       const res = await supabase
         .from('as_logs')
-        .select('id, customer_name, product, symptom, resolved, escalated, created_at')
+        .select('id, ticket_no, customer_name, product, symptom, resolved, escalated, created_at')
         .order('created_at', { ascending: false })
         .limit(200);
       if (cancelled) return;
@@ -228,7 +228,7 @@ const ASStats = () => {
             >
               <tr>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
-                  AS ID
+                  접수번호
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
                   고객명
@@ -278,7 +278,7 @@ const ASStats = () => {
                     }}
                   >
                     <td className="py-3 px-4" style={{ color: colors.txt }}>
-                      {log.id}
+                      {log.ticket_no || log.id}
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.txt }}>
                       {log.customer_name}

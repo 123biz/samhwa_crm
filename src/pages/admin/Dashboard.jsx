@@ -49,7 +49,7 @@ const Dashboard = () => {
       // AS 로그(최근 5개)
       const asRes = await supabase
         .from('as_logs')
-        .select('id, customer_name, product, symptom, resolved, escalated, created_at')
+        .select('id, ticket_no, customer_name, product, symptom, resolved, escalated, created_at')
         .order('created_at', { ascending: false })
         .limit(5);
       if (!cancelled) setAsLogs(asRes.error ? [] : (asRes.data || []));
@@ -129,6 +129,12 @@ const Dashboard = () => {
 
   const kpiCards = useMemo(() => ([
     {
+      title: 'QR 스캔 수',
+      value: Number(kpi.totalQRScans || 0).toLocaleString(),
+      growth: kpi.qrGrowth || 0,
+      borderColor: '#16A085',
+    },
+    {
       title: '카카오 친구 수',
       value: Number(kpi.totalFriends || 0).toLocaleString(),
       growth: kpi.friendsGrowth || 0,
@@ -145,12 +151,6 @@ const Dashboard = () => {
       value: `${kpi.chatbotAutoRate || 0}%`,
       growth: kpi.chatbotGrowth || 0,
       borderColor: colors.warning,
-    },
-    {
-      title: 'QR 스캔 수',
-      value: Number(kpi.totalQRScans || 0).toLocaleString(),
-      growth: kpi.qrGrowth || 0,
-      borderColor: '#16A085',
     },
   ]), [kpi, colors.secondary, colors.success, colors.warning]);
 
@@ -275,7 +275,7 @@ const Dashboard = () => {
             <thead>
               <tr style={{ borderBottomColor: colors.border, borderBottomWidth: '1px' }}>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
-                  AS ID
+                  접수번호
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
                   고객명
@@ -296,7 +296,8 @@ const Dashboard = () => {
             </thead>
             <tbody>
               {recentAsLogs.map((log) => {
-                const date = new Date(log.createdAt).toLocaleDateString('ko-KR', {
+                const createdAt = log.created_at || log.createdAt;
+                const date = new Date(createdAt).toLocaleDateString('ko-KR', {
                   month: '2-digit',
                   day: '2-digit',
                   hour: '2-digit',
@@ -304,6 +305,8 @@ const Dashboard = () => {
                 });
                 const statusColor = log.resolved ? colors.success : log.escalated ? colors.error : colors.warning;
                 const statusText = log.resolved ? '해결완료' : log.escalated ? '대기' : '미해결';
+                const ticketNo = log.ticket_no || log.ticketNo || log.id;
+                const customerName = log.customer_name || log.customerName;
 
                 return (
                   <tr
@@ -314,10 +317,10 @@ const Dashboard = () => {
                     }}
                   >
                     <td className="py-3 px-4" style={{ color: colors.txt }}>
-                      {log.id}
+                      {ticketNo}
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.txt }}>
-                      {log.customerName}
+                      {customerName}
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.txt }}>
                       {log.product}
