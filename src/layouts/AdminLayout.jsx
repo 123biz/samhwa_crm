@@ -15,10 +15,25 @@ const navItems = [
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedEventId, setSelectedEventId] = useState('kintex2026');
+  const [selectedProductId, setSelectedProductId] = useState('body_love');
   const eventOptions = [
     { id: 'kintex2026', label: '2026 킨텍스 건강박람회' },
     { id: 'busan2026', label: '2026 부산 메디카 엑스포' },
   ];
+  const productOptions = [
+    { id: 'body_love', label: '바디러브' },
+    { id: 'ankle', label: '발목 펌핑 운동기' },
+    { id: 'perfect_gun', label: '퍼펙트건' },
+  ];
+  const eventSourceById = {
+    kintex2026: 'QR_EVENT_KINTEX_2026',
+    busan2026: 'QR_EVENT_BUSAN_2026',
+  };
+  const productSourceById = {
+    body_love: 'QR_PRODUCT_BODY_LOVE',
+    ankle: 'QR_PRODUCT_ANKLE',
+    perfect_gun: 'QR_PRODUCT_PERFECT_GUN',
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -64,6 +79,31 @@ export default function AdminLayout() {
             <p className="text-sm text-white/40 mb-2 font-semibold">모바일 미리보기</p>
             <div className="py-1">
               <div className="text-sm text-white/60 font-semibold mb-1">
+                🛍️ 제품 소개
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedProductId}
+                  onChange={(e) => setSelectedProductId(e.target.value)}
+                  className="flex-1 rounded-md bg-white/10 text-white text-xs px-2 py-1 border border-white/15 focus:outline-none"
+                >
+                  {productOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id} className="text-black">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <Link
+                  to={`/product/${selectedProductId}?source=${encodeURIComponent(productSourceById[selectedProductId] || '')}`}
+                  target="_blank"
+                  className="text-sm text-white/70 hover:text-white no-underline font-semibold"
+                >
+                  열기
+                </Link>
+              </div>
+            </div>
+            <div className="py-1">
+              <div className="text-sm text-white/60 font-semibold mb-1">
                 📋 이벤트 랜딩
               </div>
               <div className="flex items-center gap-2">
@@ -79,7 +119,7 @@ export default function AdminLayout() {
                   ))}
                 </select>
                 <Link
-                  to={`/landing/${selectedEventId}`}
+                  to={`/landing/${selectedEventId}?source=${encodeURIComponent(eventSourceById[selectedEventId] || '')}`}
                   target="_blank"
                   className="text-sm text-white/70 hover:text-white no-underline font-semibold"
                 >

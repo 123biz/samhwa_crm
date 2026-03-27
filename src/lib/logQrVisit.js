@@ -5,6 +5,13 @@ import { supabase } from './supabaseClient';
  */
 export async function logQrVisit(sourceFromQuery) {
   if (!supabase) return;
+  if (typeof window !== 'undefined') {
+    const dedupeKey = `qrlog:${window.location.pathname}:${window.location.search}`;
+    const now = Date.now();
+    const last = Number(window.sessionStorage.getItem(dedupeKey) || 0);
+    if (now - last < 10000) return;
+    window.sessionStorage.setItem(dedupeKey, String(now));
+  }
 
   const source = sourceFromQuery || null;
   const effectiveSource = source || 'DIRECT';
