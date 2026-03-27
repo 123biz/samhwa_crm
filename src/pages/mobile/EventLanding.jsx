@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 import { supabase } from '../../lib/supabaseClient';
+import { logQrVisit } from '../../lib/logQrVisit';
 
 const eventData = {
   kintex2026: {
@@ -22,41 +23,15 @@ export default function EventLanding() {
   const [products, setProducts] = useState([]);
   const [eventQr, setEventQr] = useState(null);
 
-  const didLogRef = useRef(false);
+  const lastLogKeyRef = useRef(null);
 
   const event = eventData[eventId] || eventData.kintex2026;
 
   useEffect(() => {
-    if (didLogRef.current) return;
-    didLogRef.current = true;
-
-    if (!supabase) return;
-
-    (async () => {
-      const effectiveSource = source || 'DIRECT';
-
-      // source -> qr_codes 매핑이 있으면 qr_code_id까지 같이 저장
-      // DIRECT 유입은 매핑하지 않습니다.
-      let qrCodeId = null;
-      if (source) {
-        const codeRes = await supabase
-          .from('qr_codes')
-          .select('id')
-          .eq('source', source)
-          .maybeSingle();
-        qrCodeId = !codeRes.error ? codeRes.data?.id ?? null : null;
-      }
-
-      await supabase
-        .from('qr_logs')
-        .insert({
-          created_at: new Date().toISOString(),
-          source: effectiveSource,
-          qr_code_id: qrCodeId,
-        });
-    })().catch(() => {
-      // UI는 디자인을 유지하기 위해 에러를 조용히 흡수합니다.
-    });
+    const key = `${eventId}:${source ?? ''}`;
+    if (lastLogKeyRef.current === key) return;
+    lastLogKeyRef.current = key;
+    logQrVisit(source).catch(() => {});
   }, [source, eventId]);
 
   useEffect(() => {

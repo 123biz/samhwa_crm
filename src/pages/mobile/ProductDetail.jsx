@@ -1,14 +1,25 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Play } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { logQrVisit } from '../../lib/logQrVisit';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const source = searchParams.get('source') || null;
+  const lastLogKeyRef = useRef(null);
 
   const [product, setProduct] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
+
+  useEffect(() => {
+    const key = `${id}:${source ?? ''}`;
+    if (lastLogKeyRef.current === key) return;
+    lastLogKeyRef.current = key;
+    logQrVisit(source).catch(() => {});
+  }, [source, id]);
 
   React.useEffect(() => {
     let cancelled = false;

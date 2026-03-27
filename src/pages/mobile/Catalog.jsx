@@ -1,8 +1,19 @@
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { logQrVisit } from '../../lib/logQrVisit';
 
 export default function Catalog() {
   const [searchParams] = useSearchParams();
   const source = searchParams.get('source') || 'UNKNOWN';
+  const lastLogKeyRef = useRef(null);
+
+  useEffect(() => {
+    const effective = source === 'UNKNOWN' ? null : source;
+    const key = effective ?? 'DIRECT';
+    if (lastLogKeyRef.current === key) return;
+    lastLogKeyRef.current = key;
+    logQrVisit(effective).catch(() => {});
+  }, [source]);
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-[#F8F9FA]">
