@@ -44,8 +44,8 @@ const QRStats = () => {
 
   const typeLabels = {
     PRODUCT: '제품',
-    EVENT: '이벤트',
-    BANNER: '배너',
+    EVENT: '이벤트/전시회',
+    BANNER: '카탈로그 배너',
   };
 
   const publicBaseUrl = (() => {
@@ -161,7 +161,7 @@ const QRStats = () => {
         setProductsLoading(false);
         return;
       }
-      const res = await supabase.from('products').select('id, name').order('name', { ascending: true });
+      const res = await supabase.from('products').select('id, name, product_url').order('name', { ascending: true });
       if (cancelled) return;
       setProducts(res.error ? [] : (res.data || []));
       setProductsLoading(false);
@@ -189,9 +189,11 @@ const QRStats = () => {
 
   const composeProductUrl = useCallback((productId, source) => {
     if (!productId) return '';
+    const product = productById.get(productId);
+    if (product?.product_url) return product.product_url;
     const base = `${publicBaseUrl}/product/${encodeURIComponent(productId)}`;
     return source ? `${base}?source=${encodeURIComponent(source)}` : base;
-  }, [publicBaseUrl]);
+  }, [publicBaseUrl, productById]);
 
   const openEdit = (qr) => {
     setEditing(qr);
@@ -363,7 +365,7 @@ const QRStats = () => {
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold" style={{ color: colors.txt }}>
-            QR 스캔 통계
+            QR 코드 관리
           </h1>
           <p style={{ color: colors.sub }} className="text-sm mt-1">
             QR 코드 성과 분석 및 스캔 현황
@@ -409,9 +411,28 @@ const QRStats = () => {
             {/* QR Header */}
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-lg font-bold mt-1" style={{ color: colors.txt }}>
-                  {qr.type === 'PRODUCT' ? (productById.get(qr.target)?.name || qr.target) : qr.target}
-                </p>
+                {(() => {
+                  const product = qr.type === 'PRODUCT' ? productById.get(qr.target) : null;
+                  const href = product?.product_url || qr.destinationUrl;
+                  const label = product?.name || qr.target;
+                  const previewHref = href
+                    ? href + (href.includes('?') ? '&' : '?') + 'preview=1'
+                    : null;
+                  return previewHref ? (
+                    <a
+                      href={previewHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: colors.secondary, cursor: 'pointer', fontWeight: 'bold', fontSize: '1.125rem' }}
+                      onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+                      onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+                    >
+                      {label} ↗
+                    </a>
+                  ) : (
+                    <p className="text-lg font-bold mt-1" style={{ color: colors.txt }}>{label}</p>
+                  );
+                })()}
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -530,8 +551,8 @@ const QRStats = () => {
                   }}
                 >
                   <option value="PRODUCT">제품</option>
-                  <option value="EVENT">이벤트</option>
-                  <option value="BANNER">배너</option>
+                  <option value="EVENT">이벤트/전시회</option>
+                  <option value="BANNER">카탈로그 배너</option>
                 </select>
               </div>
 
@@ -559,11 +580,14 @@ const QRStats = () => {
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs mb-1 text-gray-500">target</label>
+                  <label className="block text-xs mb-1 text-gray-500">
+                    {editForm.type === 'EVENT' ? '행사명' : '배너 명칭'}
+                  </label>
                   <input
                     className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
                     value={editForm.target}
                     onChange={(e) => setEditForm((v) => ({ ...v, target: e.target.value }))}
+                    placeholder={editForm.type === 'EVENT' ? '예: 2026 킨텍스 건강박람회' : '예: 2026 봄 카탈로그 배너'}
                   />
                 </div>
               )}
@@ -659,8 +683,8 @@ const QRStats = () => {
                   }}
                 >
                   <option value="PRODUCT">제품</option>
-                  <option value="EVENT">이벤트</option>
-                  <option value="BANNER">배너</option>
+                  <option value="EVENT">이벤트/전시회</option>
+                  <option value="BANNER">카탈로그 배너</option>
                 </select>
               </div>
 
@@ -688,12 +712,14 @@ const QRStats = () => {
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs mb-1 text-gray-500">target</label>
+                  <label className="block text-xs mb-1 text-gray-500">
+                    {createForm.type === 'EVENT' ? '행사명' : '배너 명칭'}
+                  </label>
                   <input
                     className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
                     value={createForm.target}
                     onChange={(e) => setCreateForm((v) => ({ ...v, target: e.target.value }))}
-                    placeholder={createForm.type === 'EVENT' ? '예: 2026 킨텍스 건강박람회' : '예: 카탈로그 배너'}
+                    placeholder={createForm.type === 'EVENT' ? '예: 2026 킨텍스 건강박람회' : '예: 2026 봄 카탈로그 배너'}
                   />
                 </div>
               )}

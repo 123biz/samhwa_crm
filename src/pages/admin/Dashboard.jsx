@@ -18,8 +18,7 @@ const Dashboard = () => {
   };
 
   const [kpi, setKpi] = useState({
-    totalFriends: 0,
-    friendsGrowth: 0,
+    totalAs: 0,
     totalCustomers: 0,
     customersGrowth: 0,
     chatbotAutoRate: 0,
@@ -83,7 +82,7 @@ const Dashboard = () => {
       }));
       if (!cancelled) setSourceDistribution(dist);
 
-      // 월별 트렌드(최근 6개월) - registrations만 계산, friends는 0 유지(테이블이 생기면 교체)
+      // 월별 트렌드(최근 6개월)
       const now = new Date();
       const months = [];
       for (let i = 5; i >= 0; i -= 1) {
@@ -98,9 +97,9 @@ const Dashboard = () => {
         if (!regMap.has(key)) continue;
         regMap.set(key, (regMap.get(key) || 0) + 1);
       }
+
       const trend = months.map(({ y, m }) => ({
         month: `${m + 1}월`,
-        friends: 0,
         registrations: regMap.get(`${y}-${m}`) || 0,
       }));
       if (!cancelled) setFriendsTrend(trend);
@@ -118,6 +117,7 @@ const Dashboard = () => {
           totalCustomers,
           totalQRScans,
           chatbotAutoRate,
+          totalAs,
         }));
       }
     })();
@@ -135,16 +135,16 @@ const Dashboard = () => {
       borderColor: '#16A085',
     },
     {
-      title: '카카오 친구 수',
-      value: Number(kpi.totalFriends || 0).toLocaleString(),
-      growth: kpi.friendsGrowth || 0,
-      borderColor: colors.secondary,
-    },
-    {
       title: '등록 고객 수',
       value: Number(kpi.totalCustomers || 0).toLocaleString(),
       growth: kpi.customersGrowth || 0,
       borderColor: colors.success,
+    },
+    {
+      title: 'AS 접수 고객 수',
+      value: Number(kpi.totalAs || 0).toLocaleString(),
+      growth: 0,
+      borderColor: colors.secondary,
     },
     {
       title: '챗봇 자동응답률',
@@ -175,9 +175,11 @@ const Dashboard = () => {
               borderLeft: `4px solid ${card.borderColor}`,
             }}
           >
-            <h3 style={{ color: colors.sub }} className="text-sm font-medium mb-2">
-              {card.title}
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 style={{ color: colors.sub }} className="text-sm font-medium">
+                {card.title}
+              </h3>
+            </div>
             <p className="text-2xl font-bold" style={{ color: colors.txt }}>
               {card.value}
             </p>
@@ -199,7 +201,7 @@ const Dashboard = () => {
           style={{ backgroundColor: colors.surface }}
         >
           <h2 className="text-lg font-bold mb-4" style={{ color: colors.txt }}>
-            월별 친구 증가 트렌드
+            월별 신규 등록 트렌드
           </h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={friendsTrend}>
@@ -214,13 +216,6 @@ const Dashboard = () => {
                 }}
               />
               <Legend />
-              <Line
-                type="monotone"
-                dataKey="friends"
-                stroke={colors.secondary}
-                strokeWidth={2}
-                name="카카오 친구"
-              />
               <Line
                 type="monotone"
                 dataKey="registrations"

@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════════════
 
 export const products = [
-  { id: 'body_love', name: '바디러브', price: 2980000, annualSales: 6000,
+  { id: 'body_love', name: '소모코 바디러브', price: 2980000, annualSales: 6000, product_url: 'https://www.samhwamc.com/product/detail.html?product_no=22&cate_no=43&display_group=1',
     image: '🫶', description: '전신 진동 마사지기', category: '건강기기',
     features: ['전신 마사지', '다단계 진동', '리모컨 포함'],
     symptoms: [
@@ -79,7 +79,7 @@ export const asLogs = Array.from({ length: 120 }, (_, i) => {
 
 // QR 코드
 export const qrCodes = [
-  { id: 'QR-P-001', type: 'PRODUCT', target: '바디러브', url: '/product/body_love', scanCount: 823, createdAt: '2026-03-01' },
+  { id: 'QR-P-001', type: 'PRODUCT', target: '소모코 바디러브', url: 'https://www.samhwamc.com/product/detail.html?product_no=22&cate_no=43&display_group=1', scanCount: 823, createdAt: '2026-03-01' },
   { id: 'QR-P-002', type: 'PRODUCT', target: '발목 펌핑 운동기', url: '/product/ankle', scanCount: 1245, createdAt: '2026-03-01' },
   { id: 'QR-P-003', type: 'PRODUCT', target: '퍼펙트건', url: '/product/perfect_gun', scanCount: 456, createdAt: '2026-03-01' },
   { id: 'QR-E-001', type: 'EVENT', target: '2026 킨텍스 박람회', url: '/landing/kintex2026', scanCount: 2100, createdAt: '2026-03-10' },
@@ -136,7 +136,7 @@ export const sourceDistribution = [
 
 // AS 제품별 통계
 export const asProductStats = [
-  { product: '바디러브', total: 42, resolved: 30, escalated: 12 },
+  { product: '소모코 바디러브', total: 42, resolved: 30, escalated: 12 },
   { product: '발목 운동기', total: 55, resolved: 38, escalated: 17 },
   { product: '퍼펙트건', total: 23, resolved: 18, escalated: 5 },
 ];

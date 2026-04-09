@@ -5,6 +5,7 @@ import { supabase } from './supabaseClient';
  */
 export async function logQrVisit(sourceFromQuery) {
   if (!supabase) return;
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1') return;
   if (typeof window !== 'undefined') {
     const dedupeKey = `qrlog:${window.location.pathname}:${window.location.search}`;
     const now = Date.now();
