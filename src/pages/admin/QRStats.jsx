@@ -114,10 +114,28 @@ const QRStats = () => {
     URL.revokeObjectURL(href);
   };
 
+  const CHART_DAYS = 25;
+  const [chartOffset, setChartOffset] = useState(0); // 0 = 최근, 25 = 25일 전, ...
+
+  const chartEndDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - chartOffset);
+    return d;
+  }, [chartOffset]);
+
+  const chartRangeLabel = useMemo(() => {
+    const end = new Date(chartEndDate);
+    const start = new Date(chartEndDate);
+    start.setDate(start.getDate() - (CHART_DAYS - 1));
+    const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
+    return `${fmt(start)} ~ ${fmt(end)}`;
+  }, [chartEndDate]);
+
   const [loading, setLoading] = useState(true);
   const [qrCodes, setQrCodes] = useState([]);
   const [qrScanDaily, setQrScanDaily] = useState([]);
   const [dataError, setDataError] = useState(false);
+  const [chartLoading, setChartLoading] = useState(false);
 
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
@@ -131,7 +149,7 @@ const QRStats = () => {
   const refresh = useCallback(async () => {
     setLoading(true);
     setDataError(false);
-    const res = await fetchQrStats({ days: 25 });
+    const res = await fetchQrStats({ days: CHART_DAYS, endDate: chartEndDate });
     if (!res.ok) {
       setDataError(true);
       setQrCodes([]);
@@ -142,7 +160,21 @@ const QRStats = () => {
     setQrCodes(res.qrCodes);
     setQrScanDaily(res.qrScanDaily);
     setLoading(false);
-  }, []);
+  }, [chartEndDate]);
+
+  // 차트 구간만 다시 불러오기 (카드 유지)
+  useEffect(() => {
+    let cancelled = false;
+    if (loading) return; // 최초 로딩 중에는 refresh가 처리
+    (async () => {
+      setChartLoading(true);
+      const res = await fetchQrStats({ days: CHART_DAYS, endDate: chartEndDate });
+      if (cancelled) return;
+      if (res.ok) setQrScanDaily(res.qrScanDaily);
+      setChartLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [chartOffset]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let cancelled = false;
@@ -777,9 +809,35 @@ const QRStats = () => {
         className="rounded-lg shadow-md p-6"
         style={{ backgroundColor: colors.surface }}
       >
-        <h2 className="text-lg font-bold mb-4" style={{ color: colors.txt }}>
-          일별 QR 스캔 추이
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold" style={{ color: colors.txt }}>
+            일별 QR 스캔 추이
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setChartOffset((v) => v + CHART_DAYS)}
+              className="w-8 h-8 rounded-md border flex items-center justify-center text-gray-600 hover:bg-gray-100 transition"
+              style={{ borderColor: colors.border }}
+              title="이전 기간"
+            >
+              ‹
+            </button>
+            <span className="text-sm font-medium" style={{ color: colors.sub, minWidth: '100px', textAlign: 'center' }}>
+              {chartLoading ? '...' : chartRangeLabel}
+            </span>
+            <button
+              type="button"
+              onClick={() => setChartOffset((v) => Math.max(0, v - CHART_DAYS))}
+              disabled={chartOffset === 0}
+              className="w-8 h-8 rounded-md border flex items-center justify-center text-gray-600 hover:bg-gray-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ borderColor: colors.border }}
+              title="다음 기간"
+            >
+              ›
+            </button>
+          </div>
+        </div>
         <ResponsiveContainer width="100%" height={400}>
           <AreaChart data={qrScanDaily}>
             <defs>

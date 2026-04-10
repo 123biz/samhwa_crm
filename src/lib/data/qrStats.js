@@ -14,7 +14,7 @@ function displayMdKey(iso) {
   return `${Number(m)}/${Number(d)}`;
 }
 
-export async function fetchQrStats({ days = 25 } = {}) {
+export async function fetchQrStats({ days = 25, endDate } = {}) {
   if (!supabase) {
     return {
       ok: false,
@@ -65,7 +65,7 @@ export async function fetchQrStats({ days = 25 } = {}) {
   }));
 
   // 2) 최근 N일간 스캔 로그 가져와서 클라이언트에서 집계
-  const now = new Date();
+  const now = endDate ? new Date(endDate) : new Date();
   const start = new Date(now);
   start.setDate(start.getDate() - (days - 1));
   start.setHours(0, 0, 0, 0);
