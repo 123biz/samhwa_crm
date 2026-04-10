@@ -190,19 +190,25 @@ const QRStats = () => {
   const composeProductUrl = useCallback((productId, source) => {
     if (!productId) return '';
     const product = productById.get(productId);
-    if (product?.product_url) return product.product_url;
-    const base = `${publicBaseUrl}/product/${encodeURIComponent(productId)}`;
-    return source ? `${base}?source=${encodeURIComponent(source)}` : base;
+    const base = product?.product_url || `${publicBaseUrl}/product/${encodeURIComponent(productId)}`;
+    if (!source) return base;
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}source=${encodeURIComponent(source)}`;
   }, [publicBaseUrl, productById]);
 
   const openEdit = (qr) => {
     setEditing(qr);
+    const source = qr.source || '';
+    const productId = qr.type === 'PRODUCT' ? (qr.target || '') : '';
+    const destinationUrl = qr.type === 'PRODUCT'
+      ? composeProductUrl(productId, source)
+      : (qr.destinationUrl || '');
     setEditForm({
       type: qr.type,
-      productId: qr.type === 'PRODUCT' ? (qr.target || '') : '',
+      productId,
       target: qr.type === 'PRODUCT' ? '' : (qr.target || ''),
-      source: qr.source || '',
-      destinationUrl: qr.destinationUrl || '',
+      source,
+      destinationUrl,
     });
   };
 
