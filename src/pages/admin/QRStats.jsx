@@ -87,16 +87,8 @@ const QRStats = () => {
   };
 
   const buildQrUrl = (qr) => {
-    const normalized = normalizeDestinationUrl(qr?.destinationUrl || '');
-    if (normalized) return normalized;
-    if (!qr?.source) return null;
-
-    if (qr.type === 'PRODUCT' && qr.target) {
-      return `${publicBaseUrl}/product/${encodeURIComponent(qr.target)}?source=${encodeURIComponent(qr.source)}`;
-    }
-
-    const eventId = inferEventIdFromQr(qr);
-    return `${publicBaseUrl}/landing/${eventId}?source=${encodeURIComponent(qr.source)}`;
+    if (!qr?.id) return null;
+    return `${publicBaseUrl}/go/${qr.id}`;
   };
 
   const downloadQrSvg = (qr) => {
