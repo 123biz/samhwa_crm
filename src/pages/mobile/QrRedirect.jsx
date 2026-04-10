@@ -19,7 +19,13 @@ export default function QrRedirect() {
 
       if (!data?.destination_url) return;
 
-      if (!preview) {
+      // 외부 URL일 때만 여기서 로그. 내부 URL은 도착 페이지에서 직접 logQrVisit을 호출.
+      const isExternal = (() => {
+        try { return new URL(data.destination_url).origin !== window.location.origin; }
+        catch { return false; }
+      })();
+
+      if (!preview && isExternal) {
         await supabase.from('qr_logs').insert({
           created_at: new Date().toISOString(),
           source: data.source || 'DIRECT',
