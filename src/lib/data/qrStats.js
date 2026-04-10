@@ -14,7 +14,7 @@ function displayMdKey(iso) {
   return `${Number(m)}/${Number(d)}`;
 }
 
-export async function fetchQrStats({ days = 25, endDate } = {}) {
+export async function fetchQrStats({ days = 25, endDate, startDate } = {}) {
   if (!supabase) {
     return {
       ok: false,
@@ -64,11 +64,15 @@ export async function fetchQrStats({ days = 25, endDate } = {}) {
     scanCount: 0,
   }));
 
-  // 2) 최근 N일간 스캔 로그 가져와서 클라이언트에서 집계
+  // 2) 날짜 범위 계산
   const now = endDate ? new Date(endDate) : new Date();
-  const start = new Date(now);
-  start.setDate(start.getDate() - (days - 1));
+  now.setHours(23, 59, 59, 999);
+  const start = startDate ? new Date(startDate) : new Date(now);
+  if (!startDate) start.setDate(start.getDate() - (days - 1));
   start.setHours(0, 0, 0, 0);
+
+  // start~now 사이 일수 계산
+  const totalDays = Math.round((now - start) / 86400000) + 1;
 
   const logsRes = await supabase
     .from('qr_logs')
@@ -77,9 +81,8 @@ export async function fetchQrStats({ days = 25, endDate } = {}) {
     .lte('created_at', now.toISOString());
 
   if (logsRes.error) {
-    // 카드 목록만이라도 보여주되, 스캔수/추이는 0으로 유지
     const daily = [];
-    for (let i = 0; i < days; i += 1) {
+    for (let i = 0; i < totalDays; i += 1) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
       daily.push({ date: displayMdKey(isoDateKey(d)), product: 0, event: 0, banner: 0 });
@@ -95,7 +98,7 @@ export async function fetchQrStats({ days = 25, endDate } = {}) {
   const byDateType = new Map(); // key: YYYY-MM-DD -> { product,event,banner }
 
   // 초기화(날짜 축 고정)
-  for (let i = 0; i < days; i += 1) {
+  for (let i = 0; i < totalDays; i += 1) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
     byDateType.set(isoDateKey(d), { product: 0, event: 0, banner: 0 });

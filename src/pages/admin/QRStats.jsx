@@ -114,22 +114,17 @@ const QRStats = () => {
     URL.revokeObjectURL(href);
   };
 
-  const CHART_DAYS = 25;
-  const [chartOffset, setChartOffset] = useState(0); // 0 = 최근, 25 = 25일 전, ...
+  const [chartMonthOffset, setChartMonthOffset] = useState(0); // 0 = 이번 달, 1 = 지난달, ...
 
-  const chartEndDate = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - chartOffset);
-    return d;
-  }, [chartOffset]);
-
-  const chartRangeLabel = useMemo(() => {
-    const end = new Date(chartEndDate);
-    const start = new Date(chartEndDate);
-    start.setDate(start.getDate() - (CHART_DAYS - 1));
-    const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
-    return `${fmt(start)} ~ ${fmt(end)}`;
-  }, [chartEndDate]);
+  const { chartStartDate, chartEndDate, chartRangeLabel } = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() - chartMonthOffset;
+    const start = new Date(y, m, 1);
+    const end = chartMonthOffset === 0 ? now : new Date(y, m + 1, 0, 23, 59, 59, 999);
+    const label = `${start.getFullYear()}년 ${start.getMonth() + 1}월`;
+    return { chartStartDate: start, chartEndDate: end, chartRangeLabel: label };
+  }, [chartMonthOffset]);
 
   const [loading, setLoading] = useState(true);
   const [qrCodes, setQrCodes] = useState([]);
@@ -149,7 +144,7 @@ const QRStats = () => {
   const refresh = useCallback(async () => {
     setLoading(true);
     setDataError(false);
-    const res = await fetchQrStats({ days: CHART_DAYS, endDate: chartEndDate });
+    const res = await fetchQrStats({ startDate: chartStartDate, endDate: chartEndDate });
     if (!res.ok) {
       setDataError(true);
       setQrCodes([]);
@@ -160,21 +155,21 @@ const QRStats = () => {
     setQrCodes(res.qrCodes);
     setQrScanDaily(res.qrScanDaily);
     setLoading(false);
-  }, [chartEndDate]);
+  }, [chartStartDate, chartEndDate]);
 
   // 차트 구간만 다시 불러오기 (카드 유지)
   useEffect(() => {
     let cancelled = false;
-    if (loading) return; // 최초 로딩 중에는 refresh가 처리
+    if (loading) return;
     (async () => {
       setChartLoading(true);
-      const res = await fetchQrStats({ days: CHART_DAYS, endDate: chartEndDate });
+      const res = await fetchQrStats({ startDate: chartStartDate, endDate: chartEndDate });
       if (cancelled) return;
       if (res.ok) setQrScanDaily(res.qrScanDaily);
       setChartLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [chartOffset]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [chartMonthOffset]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let cancelled = false;
@@ -392,24 +387,107 @@ const QRStats = () => {
   return (
     <div className="p-6" style={{ backgroundColor: colors.bg, minHeight: '100vh' }}>
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold" style={{ color: colors.txt }}>
-            QR 코드 관리
-          </h1>
-          <p style={{ color: colors.sub }} className="text-sm mt-1">
-            QR 코드 성과 분석 및 스캔 현황
-          </p>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold" style={{ color: colors.txt }}>
+          QR 코드 관리
+        </h1>
+        <p style={{ color: colors.sub }} className="text-sm mt-1">
+          QR 코드 성과 분석 및 스캔 현황
+        </p>
+      </div>
+
+      {/* Summary Statistics */}
+      <div
+        className="rounded-lg shadow-md p-6 mb-8"
+        style={{ backgroundColor: colors.surface }}
+      >
+        <h2 className="text-lg font-bold mb-4" style={{ color: colors.txt }}>
+          QR 통계 요약
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <p style={{ color: colors.sub }} className="text-sm mb-2">총 QR 코드 수</p>
+            <p className="text-2xl font-bold" style={{ color: colors.txt }}>{qrCodes.length}개</p>
+          </div>
+          <div>
+            <p style={{ color: colors.sub }} className="text-sm mb-2">총 스캔 수</p>
+            <p className="text-2xl font-bold" style={{ color: colors.secondary }}>{totalScanCount.toLocaleString()}건</p>
+          </div>
+          <div>
+            <p style={{ color: colors.sub }} className="text-sm mb-2">평균 스캔율</p>
+            <p className="text-2xl font-bold" style={{ color: colors.success }}>
+              {qrCodes.length > 0 ? (totalScanCount / qrCodes.length).toFixed(0) : 0}건
+            </p>
+          </div>
         </div>
-        <button
-          type="button"
-          className="rounded-lg px-6 py-3 text-base font-extrabold text-white cursor-pointer shadow-sm hover:shadow"
-          style={{ backgroundColor: colors.primary, opacity: saving ? 0.7 : 1 }}
-          onClick={openCreate}
-          disabled={saving}
-        >
-          QR 등록
-        </button>
+      </div>
+
+      {/* Area Chart - Daily Scan Trend */}
+      <div
+        className="rounded-lg shadow-md p-6 mb-8"
+        style={{ backgroundColor: colors.surface }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold" style={{ color: colors.txt }}>
+            일별 QR 스캔 추이
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setChartMonthOffset((v) => v + 1)}
+              className="w-8 h-8 rounded-md border flex items-center justify-center text-gray-600 hover:bg-gray-100 transition"
+              style={{ borderColor: colors.border }}
+              title="이전 달"
+            >
+              ‹
+            </button>
+            <span className="text-sm font-medium" style={{ color: colors.sub, minWidth: '90px', textAlign: 'center' }}>
+              {chartLoading ? '...' : chartRangeLabel}
+            </span>
+            <button
+              type="button"
+              onClick={() => setChartMonthOffset((v) => Math.max(0, v - 1))}
+              disabled={chartMonthOffset === 0}
+              className="w-8 h-8 rounded-md border flex items-center justify-center text-gray-600 hover:bg-gray-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ borderColor: colors.border }}
+              title="다음 달"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={400}>
+          <AreaChart data={qrScanDaily}>
+            <defs>
+              <linearGradient id="colorProduct" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={colors.secondary} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={colors.secondary} stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorEvent" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={colors.success} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={colors.success} stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorBanner" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={colors.warning} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={colors.warning} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
+            <XAxis dataKey="date" stroke={colors.sub} fontSize={12} />
+            <YAxis stroke={colors.sub} fontSize={12} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.border}`,
+                borderRadius: '8px',
+              }}
+            />
+            <Legend />
+            <Area type="monotone" dataKey="product" stroke={colors.secondary} strokeWidth={2} fillOpacity={1} fill="url(#colorProduct)" name="제품 QR" />
+            <Area type="monotone" dataKey="event" stroke={colors.success} strokeWidth={2} fillOpacity={1} fill="url(#colorEvent)" name="이벤트 QR" />
+            <Area type="monotone" dataKey="banner" stroke={colors.warning} strokeWidth={2} fillOpacity={1} fill="url(#colorBanner)" name="배너 QR" />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
 
       {/* QR Code Cards */}
@@ -542,6 +620,19 @@ const QRStats = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* QR 등록 버튼 */}
+      <div className="flex justify-center mb-8">
+        <button
+          type="button"
+          className="rounded-xl px-16 py-5 text-xl font-extrabold text-white cursor-pointer shadow hover:shadow-md"
+          style={{ backgroundColor: colors.primary, opacity: saving ? 0.7 : 1 }}
+          onClick={openCreate}
+          disabled={saving}
+        >
+          QR 등록
+        </button>
       </div>
 
       {/* Edit Modal */}
@@ -804,133 +895,8 @@ const QRStats = () => {
         </div>
       )}
 
-      {/* Area Chart - Daily Scan Trend */}
-      <div
-        className="rounded-lg shadow-md p-6"
-        style={{ backgroundColor: colors.surface }}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold" style={{ color: colors.txt }}>
-            일별 QR 스캔 추이
-          </h2>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setChartOffset((v) => v + CHART_DAYS)}
-              className="w-8 h-8 rounded-md border flex items-center justify-center text-gray-600 hover:bg-gray-100 transition"
-              style={{ borderColor: colors.border }}
-              title="이전 기간"
-            >
-              ‹
-            </button>
-            <span className="text-sm font-medium" style={{ color: colors.sub, minWidth: '100px', textAlign: 'center' }}>
-              {chartLoading ? '...' : chartRangeLabel}
-            </span>
-            <button
-              type="button"
-              onClick={() => setChartOffset((v) => Math.max(0, v - CHART_DAYS))}
-              disabled={chartOffset === 0}
-              className="w-8 h-8 rounded-md border flex items-center justify-center text-gray-600 hover:bg-gray-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ borderColor: colors.border }}
-              title="다음 기간"
-            >
-              ›
-            </button>
-          </div>
-        </div>
-        <ResponsiveContainer width="100%" height={400}>
-          <AreaChart data={qrScanDaily}>
-            <defs>
-              <linearGradient id="colorProduct" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={colors.secondary} stopOpacity={0.8} />
-                <stop offset="95%" stopColor={colors.secondary} stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="colorEvent" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={colors.success} stopOpacity={0.8} />
-                <stop offset="95%" stopColor={colors.success} stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="colorBanner" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={colors.warning} stopOpacity={0.8} />
-                <stop offset="95%" stopColor={colors.warning} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-            <XAxis dataKey="date" stroke={colors.sub} fontSize={12} />
-            <YAxis stroke={colors.sub} fontSize={12} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: colors.surface,
-                border: `1px solid ${colors.border}`,
-                borderRadius: '8px',
-              }}
-            />
-            <Legend />
-            <Area
-              type="monotone"
-              dataKey="product"
-              stroke={colors.secondary}
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorProduct)"
-              name="제품 QR"
-            />
-            <Area
-              type="monotone"
-              dataKey="event"
-              stroke={colors.success}
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorEvent)"
-              name="이벤트 QR"
-            />
-            <Area
-              type="monotone"
-              dataKey="banner"
-              stroke={colors.warning}
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorBanner)"
-              name="배너 QR"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
 
-      {/* Summary Statistics */}
-      <div
-        className="rounded-lg shadow-md p-6 mt-6"
-        style={{ backgroundColor: colors.surface }}
-      >
-        <h2 className="text-lg font-bold mb-4" style={{ color: colors.txt }}>
-          QR 통계 요약
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <p style={{ color: colors.sub }} className="text-sm mb-2">
-              총 QR 코드 수
-            </p>
-            <p className="text-2xl font-bold" style={{ color: colors.txt }}>
-              {qrCodes.length}개
-            </p>
-          </div>
-          <div>
-            <p style={{ color: colors.sub }} className="text-sm mb-2">
-              총 스캔 수
-            </p>
-            <p className="text-2xl font-bold" style={{ color: colors.secondary }}>
-              {totalScanCount.toLocaleString()}건
-            </p>
-          </div>
-          <div>
-            <p style={{ color: colors.sub }} className="text-sm mb-2">
-              평균 스캔율
-            </p>
-            <p className="text-2xl font-bold" style={{ color: colors.success }}>
-              {qrCodes.length > 0 ? (totalScanCount / qrCodes.length).toFixed(0) : 0}건
-            </p>
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 };
