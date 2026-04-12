@@ -61,24 +61,24 @@ const Dashboard = () => {
       }
       const dist = Array.from(srcMap.entries()).map(([source, value]) => ({
         source:
-          source === 'QR_EVENT'
-            ? 'QR 이벤트'
-            : source === 'QR_PRODUCT'
-              ? 'QR 제품'
-              : source === 'QR_BANNER'
-                ? 'QR 배너'
-                : source === 'DIRECT'
-                  ? '직접 추가'
-                  : source,
+          source === 'QR_EVENT_KINTEX_2026' ? '킨텍스 건강박람회'
+            : source === 'QR_EVENT_BUSAN_2026' ? '부산 메디카 엑스포'
+            : source.startsWith('QR_EVENT') ? 'QR 이벤트'
+            : source.startsWith('QR_PRODUCT') ? 'QR 제품'
+            : source.startsWith('QR_BANNER') ? 'QR 배너'
+            : source === 'DIRECT' ? '직접 추가'
+            : source,
         value,
         color:
-          source === 'QR_EVENT'
+          source.startsWith('QR_EVENT') || source.includes('킨텍스') || source.includes('부산') || source.includes('엑스포') || source.includes('박람회')
             ? colors.secondary
-            : source === 'QR_PRODUCT'
+            : source.startsWith('QR_PRODUCT')
               ? colors.success
-              : source === 'QR_BANNER'
+              : source.startsWith('QR_BANNER')
                 ? colors.warning
-                : '#8E44AD',
+                : source === 'DIRECT'
+                  ? '#8E44AD'
+                  : colors.secondary,
       }));
       if (!cancelled) setSourceDistribution(dist);
 
@@ -239,7 +239,7 @@ const Dashboard = () => {
             <BarChart data={sourceDistribution} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
               <XAxis type="number" stroke={colors.sub} fontSize={12} />
-              <YAxis dataKey="source" type="category" stroke={colors.sub} fontSize={12} />
+              <YAxis dataKey="source" type="category" stroke={colors.sub} fontSize={12} width={120} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: colors.surface,
