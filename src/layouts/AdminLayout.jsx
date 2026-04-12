@@ -6,10 +6,10 @@ const navItems = [
   { to: '/admin', icon: LayoutDashboard, label: '대시보드', end: true },
   { to: '/admin/qr-stats', icon: QrCode, label: 'QR 코드 관리' },
   { to: '/admin/customers', icon: Users, label: '고객 DB 관리' },
-  { to: '/admin/broadcast', icon: Send, label: '발신 관리' },
-  { to: '/admin/analytics', icon: BarChart3, label: '발신 효과 분석' },
   { href: 'https://typebot.co/samhwa-as-bodylove', icon: Bot, label: 'A/S 챗봇' },
   { to: '/admin/as-stats', icon: Headphones, label: 'A/S 통계' },
+  { to: '/admin/broadcast', icon: Send, label: '발신 관리' },
+  { to: '/admin/analytics', icon: BarChart3, label: '발신 효과 분석' },
 ];
 
 export default function AdminLayout() {
