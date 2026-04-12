@@ -32,10 +32,15 @@ export default function Registration() {
   });
 
   // Step 2: Info
+  const eventNames = {
+    kintex2026: '2026 킨텍스 건강박람회',
+    busan2026: '2026 부산 메디카 엑스포',
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    product: '',
+    products: [],
     interests: [],
   });
 
@@ -131,8 +136,8 @@ export default function Registration() {
         return;
       }
 
-      const productsOwned =
-        formData.product && formData.product !== 'none' ? [formData.product] : [];
+      const eventId = _eventId || 'kintex2026';
+      const eventSource = eventNames[eventId] || eventId;
 
       // 고객 등록
       const inserted = await supabase
@@ -140,9 +145,10 @@ export default function Registration() {
         .insert({
           name: formData.name,
           phone: formData.phone,
-          products_owned: productsOwned,
+          products_owned: formData.products,
           interests: formData.interests,
-          source,
+          source: eventSource,
+          segment: 'EVENT',
           marketing_consent: consents.marketing,
           gift_status: 'pending',
           claimed_at: null,
@@ -330,18 +336,28 @@ export default function Registration() {
 
             {/* Product Select */}
             <div>
-              <label className="block text-sm font-semibold text-[#1B3A5C] mb-2">보유 제품</label>
-              <select
-                value={formData.product}
-                onChange={e => setFormData(prev => ({ ...prev, product: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#2E75B6] appearance-none"
-              >
-                <option value="">선택하세요</option>
+              <label className="block text-sm font-semibold text-[#1B3A5C] mb-2">보유 제품 (복수 선택 가능)</label>
+              <div className="grid grid-cols-2 gap-2">
                 {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
+                      products: prev.products.includes(p.id)
+                        ? prev.products.filter(id => id !== p.id)
+                        : [...prev.products, p.id],
+                    }))}
+                    className={`px-4 py-2 rounded-lg font-semibold transition text-sm ${
+                      formData.products.includes(p.id)
+                        ? 'bg-[#2E75B6] text-white'
+                        : 'bg-gray-100 text-[#1B3A5C] hover:bg-gray-200'
+                    }`}
+                  >
+                    {p.name}
+                  </button>
                 ))}
-                <option value="none">없음</option>
-              </select>
+              </div>
             </div>
 
             {/* Interests */}

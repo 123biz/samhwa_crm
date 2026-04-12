@@ -41,7 +41,7 @@ export default function EventLanding() {
     (async () => {
       const res = await supabase
         .from('products')
-        .select('id, name, description, image, features')
+        .select('id, name, description, image, features, product_url')
         .order('name', { ascending: true });
       if (cancelled) return;
       if (res.error) {
@@ -174,24 +174,51 @@ export default function EventLanding() {
       <div className="px-4 py-8">
         <h2 className="text-xl font-bold text-[#1B3A5C] mb-6 text-center">삼화메디칼 제품</h2>
         <div className="space-y-4">
-          {products.map(product => (
-            <div key={product.id} className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="flex items-start gap-4">
-                <div className="text-5xl">{product.image}</div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-[#1B3A5C]">{product.name}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{product.description}</p>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {product.features.slice(0, 2).map((feat, idx) => (
-                      <span key={idx} className="text-xs bg-blue-100 text-[#2E75B6] px-2 py-1 rounded">
-                        {feat}
-                      </span>
-                    ))}
+          {products.map(product => {
+            const productImageMap = {
+              body_love: '/product_bodylove.jpg',
+              perfect_gun: '/product_perfectgun.jpg',
+              ankle: '/product_pumpinglove.jpg',
+            };
+            const imgSrc = productImageMap[product.id];
+            return (
+              <div key={product.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-start gap-4">
+                  {imgSrc && (
+                    <img src={imgSrc} alt={product.name} className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-lg font-bold text-[#1B3A5C]">{product.name}</h3>
+                      {product.product_url && (
+                        <a
+                          href={product.product_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-shrink-0 text-xs font-semibold text-white px-3 py-2 rounded-lg no-underline text-center transition active:translate-y-px"
+                          style={{
+                            background: 'linear-gradient(180deg, #fb7185 0%, #f43f5e 50%, #e11d48 100%)',
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
+                            border: '1px solid #be123c',
+                          }}
+                        >
+                          상세페이지
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{product.description}</p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {product.features.slice(0, 2).map((feat, idx) => (
+                        <span key={idx} className="text-xs bg-blue-100 text-[#2E75B6] px-2 py-1 rounded">
+                          {feat}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

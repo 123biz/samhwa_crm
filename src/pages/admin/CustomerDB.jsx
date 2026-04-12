@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
-import { formatKstDate } from '../../lib/time/kst';
+import { formatKstDateTime } from '../../lib/time/kst';
 
 const CustomerDB = () => {
   const colors = {
@@ -30,6 +30,14 @@ const CustomerDB = () => {
     BUYER: '#2E75B6',
     LEAD: '#8E44AD',
     AGENT: '#16A085',
+    EVENT: '#E67E22',
+  };
+
+  const segmentLabels = {
+    BUYER: 'BUYER',
+    LEAD: 'LEAD',
+    AGENT: 'AGENT',
+    EVENT: '이벤트/전시회',
   };
 
   const sourceLabels = {
@@ -37,6 +45,8 @@ const CustomerDB = () => {
     QR_PRODUCT: 'QR 제품',
     QR_BANNER: 'QR 배너',
     DIRECT: '직접 추가',
+    '2026 킨텍스 건강박람회': '2026 킨텍스 건강박람회',
+    '2026 부산 메디카 엑스포': '2026 부산 메디카 엑스포',
   };
 
   useEffect(() => {
@@ -50,7 +60,7 @@ const CustomerDB = () => {
 
       let q = supabase
         .from('customers')
-        .select('id, name, phone, segment, source, products_owned, marketing_consent, created_at', { count: 'exact' })
+        .select('id, name, phone, segment, source, products_owned, interests, marketing_consent, created_at', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (segmentFilter !== '전체') q = q.eq('segment', segmentFilter);
@@ -155,6 +165,7 @@ const CustomerDB = () => {
               <option>전체</option>
               <option>BUYER</option>
               <option>LEAD</option>
+              <option value="EVENT">이벤트/전시회</option>
               <option>AGENT</option>
             </select>
           </div>
@@ -211,7 +222,7 @@ const CustomerDB = () => {
             >
               <tr>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
-                  ID
+                  등록 일시
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
                   이름
@@ -229,10 +240,10 @@ const CustomerDB = () => {
                   보유제품
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
-                  마케팅동의
+                  관심분야
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
-                  등록일
+                  마케팅동의
                 </th>
               </tr>
             </thead>
@@ -245,8 +256,8 @@ const CustomerDB = () => {
                     borderBottomWidth: '1px',
                   }}
                 >
-                  <td className="py-3 px-4" style={{ color: colors.txt }}>
-                    {customer.id}
+                  <td className="py-3 px-4" style={{ color: colors.sub }}>
+                    {formatKstDateTime(customer.created_at)}
                   </td>
                   <td className="py-3 px-4" style={{ color: colors.txt }}>
                     {customer.name}
@@ -261,14 +272,17 @@ const CustomerDB = () => {
                         backgroundColor: segmentBadgeColors[customer.segment],
                       }}
                     >
-                      {customer.segment}
+                      {segmentLabels[customer.segment] || customer.segment}
                     </span>
                   </td>
                   <td className="py-3 px-4" style={{ color: colors.sub }}>
-                    {sourceLabels[customer.source]}
+                    {sourceLabels[customer.source] || customer.source}
                   </td>
                   <td className="py-3 px-4" style={{ color: colors.sub }}>
                     {(customer.products_owned || []).join(', ')}
+                  </td>
+                  <td className="py-3 px-4" style={{ color: colors.sub }}>
+                    {(customer.interests || []).join(', ')}
                   </td>
                   <td className="py-3 px-4 text-center">
                     <span
@@ -279,9 +293,6 @@ const CustomerDB = () => {
                     >
                       {customer.marketing_consent ? '✓' : '✗'}
                     </span>
-                  </td>
-                  <td className="py-3 px-4" style={{ color: colors.sub }}>
-                    {formatKstDate(customer.created_at)}
                   </td>
                 </tr>
               ))}
