@@ -8,8 +8,8 @@ const navItems = [
   { to: '/admin/customers', icon: Users, label: '고객 DB 관리' },
   { to: '/admin/broadcast', icon: Send, label: '발신 관리' },
   { to: '/admin/analytics', icon: BarChart3, label: '발신 효과 분석' },
-  { to: '/admin/as-stats', icon: Headphones, label: 'AS 통계' },
-  { to: '/admin/chatbot', icon: Bot, label: '챗봇 시나리오' },
+  { href: 'https://typebot.co/samhwa-as-bodylove', icon: Bot, label: 'A/S 챗봇' },
+  { to: '/admin/as-stats', icon: Headphones, label: 'A/S 통계' },
 ];
 
 export default function AdminLayout() {
@@ -35,18 +35,28 @@ export default function AdminLayout() {
         <nav className="flex-1 py-4 overflow-y-auto">
           {navItems.map((item) => {
             const NavIcon = item.icon;
+            const commonClass = 'flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-lg no-underline transition-colors text-white/70 hover:bg-white/10 hover:text-white';
+            if (item.href) {
+              return (
+                <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" className={commonClass}>
+                  {NavIcon && <NavIcon size={20} className="flex-shrink-0" />}
+                  {sidebarOpen && <span>{item.label}</span>}
+                </a>
+              );
+            }
             return (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
+              target={item.target}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-base no-underline transition-colors ${
+                `flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-lg no-underline transition-colors ${
                   isActive ? 'bg-white/15 text-white font-semibold' : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`
               }
             >
-              <NavIcon size={20} className="flex-shrink-0" />
+              {NavIcon && <NavIcon size={20} className="flex-shrink-0" />}
               {sidebarOpen && <span>{item.label}</span>}
             </NavLink>
             );
@@ -58,7 +68,7 @@ export default function AdminLayout() {
           <div className="px-4 py-3 border-t border-white/10">
             <p className="text-lg text-white/40 mb-2 font-semibold">모바일 미리보기</p>
             <Link to="/register" target="_blank" className="block text-lg text-white/60 hover:text-white py-1 no-underline">✍️ 고객등록 폼</Link>
-            <Link to="/chatbot" target="_blank" className="block text-lg text-white/60 hover:text-white py-1 no-underline">💬 AS 챗봇</Link>
+            <Link to="/admin/chatbot" target="_blank" className="block text-lg text-white/60 hover:text-white py-1 no-underline">🤖 챗봇 시나리오</Link>
           </div>
         )}
 
