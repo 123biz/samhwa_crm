@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { formatKstDateTime } from '../../lib/time/kst';
 
 const Dashboard = () => {
   const colors = {
@@ -254,6 +255,64 @@ const Dashboard = () => {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* 최근 AS 접수 현황 */}
+      <div className="rounded-lg shadow-md p-6" style={{ backgroundColor: colors.surface }}>
+        <h2 className="text-lg font-bold mb-4" style={{ color: colors.txt }}>
+          최근 AS 접수 현황
+        </h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead
+              style={{
+                backgroundColor: colors.bg,
+                borderBottomColor: colors.border,
+                borderBottomWidth: '1px',
+              }}
+            >
+              <tr>
+                {['접수번호', '고객명', '제품', '증상', '상태', '접수 일시'].map((h) => (
+                  <th key={h} className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {recentAsLogs.length === 0 ? (
+                <tr>
+                  <td className="py-6 px-4 text-center text-sm" style={{ color: colors.sub }} colSpan={6}>
+                    데이터가 없습니다.
+                  </td>
+                </tr>
+              ) : (
+                recentAsLogs.map((log) => {
+                  const date = formatKstDateTime(log.created_at);
+                  const statusColor = log.resolved ? colors.success : log.escalated ? colors.error : colors.warning;
+                  const statusText = log.resolved ? '해결완료' : log.escalated ? '상담원 연결' : '미해결';
+                  return (
+                    <tr key={log.id} style={{ borderBottomColor: colors.border, borderBottomWidth: '1px' }}>
+                      <td className="py-3 px-4" style={{ color: colors.txt }}>{log.ticket_no || log.id}</td>
+                      <td className="py-3 px-4" style={{ color: colors.txt }}>{log.customer_name}</td>
+                      <td className="py-3 px-4" style={{ color: colors.sub }}>{log.product}</td>
+                      <td className="py-3 px-4" style={{ color: colors.sub }}>{log.symptom}</td>
+                      <td className="py-3 px-4">
+                        <span
+                          className="px-3 py-1 rounded-full text-xs font-medium"
+                          style={{ backgroundColor: `${statusColor}20`, color: statusColor }}
+                        >
+                          {statusText}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4" style={{ color: colors.sub }}>{date}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
