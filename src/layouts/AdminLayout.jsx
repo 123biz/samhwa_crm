@@ -68,7 +68,6 @@ export default function AdminLayout() {
           <div className="px-4 py-3 border-t border-white/10">
             <p className="text-lg text-white/40 mb-2 font-semibold">모바일 미리보기</p>
             <Link to="/register" target="_blank" className="block text-lg text-white/60 hover:text-white py-1 no-underline">✍️ 고객등록 폼</Link>
-            <Link to="/admin/chatbot" target="_blank" className="block text-lg text-white/60 hover:text-white py-1 no-underline">🤖 챗봇 시나리오</Link>
           </div>
         )}
 
