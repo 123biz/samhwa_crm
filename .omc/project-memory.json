@@ -1,0 +1,216 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1777696032315,
+  "projectRoot": "c:\\Aantigravity\\samhwa_crm",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "19.2.4",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.2.4",
+        "category": "frontend"
+      },
+      {
+        "name": "esbuild",
+        "version": "0.27.4",
+        "category": "build"
+      },
+      {
+        "name": "vite",
+        "version": "8.0.1",
+        "category": "build"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": null,
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "vite",
+      "build": "vite build",
+      "lint": "eslint .",
+      "preview": "vite preview"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "public",
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 16,
+      "lastAccessed": 1777696032209,
+      "keyFiles": [
+        "favicon.svg",
+        "icons.svg",
+        "index.html",
+        "product_bodylove.jpg",
+        "product_perfectgun.jpg"
+      ]
+    },
+    "prd_ia__usecase_designguide": {
+      "path": "prd_ia__usecase_designguide",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1777696032232,
+      "keyFiles": [
+        "삼화메디칼_카카오톡CRM_요구조건정의서_v1.0.docx",
+        "삼화메디칼_카카오톡_CRM_DesignGuide_v1.0.docx",
+        "삼화메디칼_카카오톡_CRM_IA_v1.1.docx",
+        "삼화메디칼_카카오톡_CRM_PRD_v1.0.docx",
+        "삼화메디칼_카카오톡_CRM_UseCase_v1.0.docx"
+      ]
+    },
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 18,
+      "lastAccessed": 1777696032234,
+      "keyFiles": [
+        "favicon.svg",
+        "icons.svg",
+        "product_bodylove.jpg",
+        "product_magiccare.jpg",
+        "product_perfectgun.jpg"
+      ]
+    },
+    "samhwa_CRM_WebApp": {
+      "path": "samhwa_CRM_WebApp",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1777696032235,
+      "keyFiles": [
+        "favicon.svg",
+        "icons.svg",
+        "index.html"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 4,
+      "lastAccessed": 1777696032236,
+      "keyFiles": [
+        "App.css",
+        "App.jsx",
+        "index.css",
+        "main.jsx"
+      ]
+    },
+    "supabase": {
+      "path": "supabase",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1777696032237,
+      "keyFiles": [
+        "kst_views.sql",
+        "schema_seed.sql"
+      ]
+    },
+    "dist\\assets": {
+      "path": "dist\\assets",
+      "purpose": "Static assets",
+      "fileCount": 2,
+      "lastAccessed": 1777696032239,
+      "keyFiles": [
+        "index-BiujbZOG.js",
+        "index-D5-PiQIw.css"
+      ]
+    },
+    "samhwa_CRM_WebApp\\assets": {
+      "path": "samhwa_CRM_WebApp\\assets",
+      "purpose": "Static assets",
+      "fileCount": 2,
+      "lastAccessed": 1777696032241,
+      "keyFiles": [
+        "index-3yB5svTx.css",
+        "index-D5-r9ldR.js"
+      ]
+    },
+    "src\\assets": {
+      "path": "src\\assets",
+      "purpose": "Static assets",
+      "fileCount": 3,
+      "lastAccessed": 1777696032243,
+      "keyFiles": [
+        "hero.png",
+        "react.svg",
+        "vite.svg"
+      ]
+    },
+    "src\\data": {
+      "path": "src\\data",
+      "purpose": "Data files",
+      "fileCount": 1,
+      "lastAccessed": 1777696032243,
+      "keyFiles": [
+        "mockData.js"
+      ]
+    },
+    "src\\lib": {
+      "path": "src\\lib",
+      "purpose": "Library code",
+      "fileCount": 2,
+      "lastAccessed": 1777696032244,
+      "keyFiles": [
+        "logQrVisit.js",
+        "supabaseClient.js"
+      ]
+    },
+    "src\\pages": {
+      "path": "src\\pages",
+      "purpose": "Page components",
+      "fileCount": 0,
+      "lastAccessed": 1777696032245,
+      "keyFiles": []
+    },
+    "supabase\\migrations": {
+      "path": "supabase\\migrations",
+      "purpose": "Database migrations",
+      "fileCount": 5,
+      "lastAccessed": 1777696032247,
+      "keyFiles": [
+        "20260326_add_destination_url_to_qr_codes.sql",
+        "20260327_add_ticket_no_to_as_logs.sql",
+        "20260409_add_kakao_stats.sql"
+      ]
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}

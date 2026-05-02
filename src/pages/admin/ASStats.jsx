@@ -10,9 +10,21 @@ import {
   Legend,
   ResponsiveContainer,
   Cell,
+  PieChart,
+  Pie,
+  Label,
 } from 'recharts';
 import { supabase } from '../../lib/supabaseClient';
 import { formatKstDateTime } from '../../lib/time/kst';
+
+const getProductOrder = (name) => {
+  if (!name) return 99;
+  if (name.includes('바디러브')) return 1;
+  if (name.includes('펌핑러브')) return 2;
+  if (name.includes('매직케어')) return 3;
+  if (name.includes('퍼펙트건')) return 4;
+  return 99;
+};
 
 const ASStats = () => {
   const colors = {
@@ -39,7 +51,7 @@ const ASStats = () => {
       setLoading(true);
       const res = await supabase
         .from('as_logs')
-        .select('id, ticket_no, customer_name, product, symptom, resolved, escalated, created_at')
+        .select('id, ticket_no, customer_name, product, symptom, resolved, escalated, created_at, utm_source, utm_medium, actions_taken')
         .order('created_at', { ascending: false })
         .limit(200);
       if (cancelled) return;
@@ -75,16 +87,32 @@ const ASStats = () => {
       if (l.escalated) v.에스컬레이션 += 1;
       map.set(k, v);
     }
-    return Array.from(map.values());
+    return Array.from(map.values()).sort((a, b) => getProductOrder(a.product) - getProductOrder(b.product));
   }, [asLogs]);
 
-  const symptomData = useMemo(() => {
+  const symptomByProductData = useMemo(() => {
     const map = new Map();
     for (const l of asLogs) {
-      const k = (l.symptom || '기타').substring(0, 10);
-      map.set(k, (map.get(k) || 0) + 1);
+      const p = l.product || '기타';
+      const s = l.symptom || '기타';
+      
+      if (!map.has(p)) {
+        map.set(p, { product: p, total: 0, symptoms: new Map() });
+      }
+      
+      const productData = map.get(p);
+      productData.total += 1;
+      productData.symptoms.set(s, (productData.symptoms.get(s) || 0) + 1);
     }
-    return Array.from(map.entries()).map(([symptom, count]) => ({ symptom, count }));
+    
+    // Sort by custom order, format for charts
+    return Array.from(map.values())
+      .sort((a, b) => getProductOrder(a.product) - getProductOrder(b.product))
+      .map(p => ({
+        product: p.product,
+        total: p.total,
+        symptoms: Array.from(p.symptoms.entries()).map(([name, value]) => ({ name, value }))
+      }));
   }, [asLogs]);
 
   // Recent AS logs
@@ -146,66 +174,109 @@ const ASStats = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Product Stats - Stacked Bar Chart */}
+      <div className="w-full mb-8">
+        {/* Symptom Stats by Product - Donut Charts */}
         <div
-          className="rounded-lg shadow-md p-6"
+          className="w-full rounded-lg shadow-md p-6 flex flex-col"
           style={{ backgroundColor: colors.surface }}
         >
           <h2 className="text-lg font-bold mb-4" style={{ color: colors.txt }}>
-            제품별 AS 현황
+            제품별 증상 현황
           </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={productData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-              <XAxis dataKey="product" stroke={colors.sub} fontSize={12} />
-              <YAxis stroke={colors.sub} fontSize={12} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: colors.surface,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: '8px',
-                }}
-              />
-              <Legend />
-              <Bar dataKey="해결" stackId="a" fill={colors.success} />
-              <Bar dataKey="에스컬레이션" stackId="a" fill={colors.error} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-2 flex-grow">
+            {symptomByProductData.slice(0, 4).map((pData, idx) => (
+              <div key={idx} className="flex flex-col items-center">
+                <h3 className="text-sm font-bold mb-6 px-4 py-1 text-center flex items-center justify-center break-keep rounded-full shadow-sm" style={{ backgroundColor: '#EDF2F7', color: colors.primary }}>
+                  {pData.product}
+                </h3>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={pData.symptoms}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={30}
+                      outerRadius={65}
+                      paddingAngle={2}
+                      labelLine={{ stroke: colors.border, strokeWidth: 1, length1: 10, length2: 10 }}
+                      label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, value, x, y, textAnchor, name }) => {
+                        const RADIAN = Math.PI / 180;
+                        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                        const insideX = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const insideY = cy + radius * Math.sin(-midAngle * RADIAN);
 
-        {/* Symptom Stats - Horizontal Bar Chart */}
-        <div
-          className="rounded-lg shadow-md p-6"
-          style={{ backgroundColor: colors.surface }}
-        >
-          <h2 className="text-lg font-bold mb-4" style={{ color: colors.txt }}>
-            증상별 문의 건수
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <HorizontalBarChart data={symptomData} layout="vertical" margin={{ left: 100 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-              <XAxis type="number" stroke={colors.sub} fontSize={12} />
-              <YAxis dataKey="symptom" type="category" stroke={colors.sub} fontSize={12} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: colors.surface,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: '8px',
-                }}
-              />
-              <Bar dataKey="count" fill={colors.secondary}>
-                {symptomData.map((_, idx) => (
-                  <Cell
-                    key={`cell-${idx}`}
-                    fill={[colors.secondary, colors.success, colors.warning, colors.error, '#8E44AD'][
-                      idx % 5
-                    ]}
-                  />
-                ))}
-              </Bar>
-            </HorizontalBarChart>
-          </ResponsiveContainer>
+                        // 긴 텍스트 자동 줄바꿈 로직 (띄어쓰기 기준 약 8~9자)
+                        const words = name.split(' ');
+                        const lines = [];
+                        let currentLine = '';
+                        words.forEach((word) => {
+                          if ((currentLine + ' ' + word).trim().length <= 9) {
+                            currentLine = (currentLine + ' ' + word).trim();
+                          } else {
+                            if (currentLine) lines.push(currentLine);
+                            currentLine = word;
+                          }
+                        });
+                        if (currentLine) lines.push(currentLine);
+
+                        // 띄어쓰기 없는 아주 긴 단어 처리
+                        if (lines.length === 1 && lines[0].length > 9) {
+                          const str = lines[0];
+                          lines[0] = str.substring(0, 9);
+                          lines[1] = str.substring(9, 18) + (str.length > 18 ? '...' : '');
+                        }
+
+                        const lineHeight = 14;
+                        const startY = y - ((lines.length - 1) * lineHeight) / 2;
+
+                        return (
+                          <g>
+                            <text x={x} y={startY} fill={colors.sub} textAnchor={textAnchor} dominantBaseline="central" fontSize={11}>
+                              {lines.map((line, i) => (
+                                <tspan x={x} dy={i === 0 ? 0 : lineHeight} key={i}>
+                                  {line}
+                                </tspan>
+                              ))}
+                            </text>
+                            {percent > 0.05 && (
+                              <g>
+                                <text x={insideX} y={insideY - 6} fill="#FFFFFF" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight="bold">
+                                  {value}건
+                                </text>
+                                <text x={insideX} y={insideY + 6} fill="#FFFFFF" textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight="bold">
+                                  ({(percent * 100).toFixed(0)}%)
+                                </text>
+                              </g>
+                            )}
+                          </g>
+                        );
+                      }}
+                    >
+                      {pData.symptoms.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={[colors.secondary, colors.success, colors.warning, colors.error, '#8E44AD', '#34495E'][index % 6]} />
+                      ))}
+                      <Label
+                        value={`${pData.total}건`}
+                        position="center"
+                        fill={colors.txt}
+                        style={{ fontSize: '15px', fontWeight: 'bold' }}
+                      />
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: colors.surface,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: '8px',
+                      }}
+                      itemStyle={{ fontSize: '12px' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -231,7 +302,7 @@ const ASStats = () => {
                   접수번호
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
-                  고객명
+                  유입경로
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
                   제품
@@ -243,6 +314,9 @@ const ASStats = () => {
                   상태
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
+                  조치사항
+                </th>
+                <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
                   접수 일시
                 </th>
               </tr>
@@ -250,7 +324,7 @@ const ASStats = () => {
             <tbody>
               {loading && (
                 <tr>
-                  <td className="py-6 px-4 text-center text-sm" style={{ color: colors.sub }} colSpan={6}>
+                  <td className="py-6 px-4 text-center text-sm" style={{ color: colors.sub }} colSpan={7}>
                     불러오는 중...
                   </td>
                 </tr>
@@ -269,6 +343,12 @@ const ASStats = () => {
                   statusText = '상담원 연결';
                 }
 
+                // 유입경로 뱃지 색상
+                const mediumLabel = log.utm_medium === 'web' ? '웹(PC)' : log.utm_medium === 'mobile' ? '모바일' : null;
+                const sourceLabel = log.utm_source ? log.utm_source.toUpperCase() : null;
+                const channelLabel = mediumLabel && sourceLabel ? `${mediumLabel} - ${sourceLabel}` : mediumLabel || log.customer_name || '수동입력';
+                const channelColor = log.utm_medium === 'web' ? '#2E75B6' : log.utm_medium === 'mobile' ? '#8E44AD' : '#666666';
+
                 return (
                   <tr
                     key={log.id}
@@ -280,8 +360,16 @@ const ASStats = () => {
                     <td className="py-3 px-4" style={{ color: colors.txt }}>
                       {log.ticket_no || log.id}
                     </td>
-                    <td className="py-3 px-4" style={{ color: colors.txt }}>
-                      {log.customer_name}
+                    <td className="py-3 px-4">
+                      <span
+                        className="px-2 py-1 rounded-full text-xs font-medium"
+                        style={{
+                          backgroundColor: `${channelColor}15`,
+                          color: channelColor,
+                        }}
+                      >
+                        {channelLabel}
+                      </span>
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.sub }}>
                       {log.product}
@@ -299,6 +387,9 @@ const ASStats = () => {
                       >
                         {statusText}
                       </span>
+                    </td>
+                    <td className="py-3 px-4" style={{ color: colors.sub }}>
+                      {log.actions_taken || '-'}
                     </td>
                     <td className="py-3 px-4" style={{ color: colors.sub }}>
                       {date}
