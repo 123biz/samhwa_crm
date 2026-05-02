@@ -70,11 +70,16 @@ const ASStats = () => {
     const resolvedCount = asLogs.filter((log) => log.resolved).length;
     const escalatedCount = asLogs.filter((log) => log.escalated).length;
     const autoResolveRate = totalQueries > 0 ? ((resolvedCount / totalQueries) * 100).toFixed(1) : '0.0';
+    
+    // 모바일 유입 비율 계산
+    const mobileCount = asLogs.filter((log) => log.utm_medium === 'mobile').length;
+    const mobileRatio = totalQueries > 0 ? ((mobileCount / totalQueries) * 100).toFixed(1) : '0.0';
 
     return {
       totalQueries,
       autoResolveRate,
       escalatedCount,
+      mobileRatio,
     };
   }, [asLogs]);
 
@@ -125,6 +130,11 @@ const ASStats = () => {
       unit: '건',
     },
     {
+      title: '모바일 유입',
+      value: stats.mobileRatio,
+      unit: '%',
+    },
+    {
       title: '자동해결률',
       value: stats.autoResolveRate,
       unit: '%',
@@ -149,14 +159,14 @@ const ASStats = () => {
       </div>
 
       {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {kpiCards.map((card, idx) => (
           <div
             key={idx}
             className="rounded-lg shadow-md p-6 flex flex-col"
             style={{
               backgroundColor: colors.surface,
-              borderLeftColor: [colors.secondary, colors.success, colors.warning][idx],
+              borderLeftColor: [colors.secondary, '#8E44AD', colors.success, colors.warning][idx % 4],
               borderLeftWidth: '4px',
             }}
           >
