@@ -102,7 +102,7 @@ export default function Registration() {
   };
 
   const canProceedStep1 = consents.privacy;
-  const canSubmitForm = formData.name && /^010-\d{4}-\d{4}$/.test(formData.phone);
+  const canSubmitForm = formData.name && /^010-\d{4}-\d{4}$/.test(formData.phone) && formData.region;
 
   // Submit form
   const handleSubmit = async () => {
@@ -294,7 +294,7 @@ export default function Registration() {
 
             {/* Name */}
             <div>
-              <label className="block text-sm font-semibold text-primary mb-2">
+              <label className="block text-base font-semibold text-black mb-2">
                 성명 <span className="text-error">*</span>
               </label>
               <input
@@ -308,7 +308,7 @@ export default function Registration() {
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-semibold text-primary mb-2">
+              <label className="block text-base font-semibold text-black mb-2">
                 연락처 <span className="text-error">*</span>
               </label>
               <input
@@ -329,9 +329,9 @@ export default function Registration() {
 
             {/* Region */}
             <div className="mt-4">
-              <label className="block text-sm font-semibold text-primary mb-2">거주 지역</label>
-              <div className="grid grid-cols-2 gap-2">
-                {['서울', '경기', '강원', '충북', '충남', '경북', '경남', '전북', '전남', '제주'].map(region => (
+              <label className="block text-base font-semibold text-black mb-2">거주 지역을 선택하세요 <span className="text-error">*</span></label>
+              <div className="grid grid-cols-3 gap-2">
+                {['서울/경기', '강원', '충북', '충남', '경북', '경남', '전북', '전남', '제주'].map(region => (
                   <button
                     key={region}
                     type="button"
@@ -350,7 +350,7 @@ export default function Registration() {
 
             {/* Product Select */}
             <div className="mt-4">
-              <label className="block text-sm font-semibold text-primary mb-2">보유 제품 (복수 선택 가능)</label>
+              <label className="block text-base font-semibold text-black mb-2">보유 제품을 알려주세요 (복수선택 가능)</label>
               <div className="grid grid-cols-2 gap-2">
                 {products.map(p => (
                   <button
@@ -376,7 +376,7 @@ export default function Registration() {
 
             {/* Interests */}
             <div className="mt-4">
-              <label className="block text-sm font-semibold text-primary mb-3">관심 분야</label>
+              <label className="block text-base font-semibold text-black mb-3">관심 분야를 알려주세요</label>
               <div className="grid grid-cols-2 gap-2">
                 {['무릎', '발목', '허리', '전신'].map(interest => (
                   <button

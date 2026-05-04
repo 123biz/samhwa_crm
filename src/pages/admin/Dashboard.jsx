@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie, Label } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { formatKstDateTime } from '../../lib/time/kst';
@@ -29,6 +29,7 @@ const Dashboard = () => {
   });
   const [friendsTrend, setFriendsTrend] = useState([]);
   const [sourceDistribution, setSourceDistribution] = useState([]);
+  const [regionDistribution, setRegionDistribution] = useState([]);
   const [asLogs, setAsLogs] = useState([]);
 
   useEffect(() => {
@@ -37,27 +38,43 @@ const Dashboard = () => {
 
     (async () => {
       // 고객 수
-      const cRes = await supabase.from('customers').select('created_at, source', { count: 'exact' });
+      const cRes = await supabase.from('customers').select('created_at, region', { count: 'exact' });
       if (cancelled) return;
       const customers = cRes.error ? [] : (cRes.data || []);
       const totalCustomers = cRes.count || customers.length;
 
-      // QR 스캔 수
-      const qRes = await supabase.from('qr_logs').select('created_at', { count: 'exact' });
+      // 거주 지역 분포
+      const regionColors = {
+        '서울/경기': '#2E75B6', '강원': '#27AE60', '충북': '#E67E22',
+        '충남': '#E74C3C', '경북': '#8E44AD', '경남': '#16A085',
+        '전북': '#F39C12', '전남': '#2980B9', '제주': '#1ABC9C',
+      };
+      const regionMap = new Map();
+      for (const r of customers) {
+        const region = r.region || '미입력';
+        regionMap.set(region, (regionMap.get(region) || 0) + 1);
+      }
+      const regionDist = Array.from(regionMap.entries())
+        .map(([region, value]) => ({ region, value, color: regionColors[region] || '#AAAAAA' }))
+        .sort((a, b) => b.value - a.value);
+      if (!cancelled) setRegionDistribution(regionDist);
+
+      // QR 스캔 수 + source 분포
+      const qRes = await supabase.from('qr_logs').select('source', { count: 'exact' });
       const totalQRScans = qRes.count || (qRes.error ? 0 : (qRes.data || []).length);
 
-      // AS 로그(최근 5개)
+      // AS 로그(최근 10개)
       const asRes = await supabase
         .from('as_logs')
-        .select('id, ticket_no, customer_name, product, symptom, resolved, escalated, created_at')
+        .select('id, ticket_no, customer_name, product, symptom, resolved, escalated, actions_taken, utm_medium, utm_source, created_at')
         .order('created_at', { ascending: false })
         .limit(5);
       if (!cancelled) setAsLogs(asRes.error ? [] : (asRes.data || []));
 
-      // source 분포
+      // QR 스캔 source 분포
       const srcMap = new Map();
-      for (const r of customers) {
-        const s = r.source || 'UNKNOWN';
+      for (const r of (qRes.data || [])) {
+        const s = r.source || 'DIRECT';
         srcMap.set(s, (srcMap.get(s) || 0) + 1);
       }
       const dist = Array.from(srcMap.entries()).map(([source, value]) => ({
@@ -67,19 +84,17 @@ const Dashboard = () => {
             : source.startsWith('QR_EVENT') ? 'QR 이벤트'
             : source.startsWith('QR_PRODUCT') ? 'QR 제품'
             : source.startsWith('QR_BANNER') ? 'QR 배너'
-            : source === 'DIRECT' ? '직접 추가'
+            : source === 'DIRECT' ? '직접'
             : source,
         value,
         color:
-          source.startsWith('QR_EVENT') || source.includes('킨텍스') || source.includes('부산') || source.includes('엑스포') || source.includes('박람회')
+          source === 'QR_EVENT_KINTEX_2026' || source === 'QR_EVENT_BUSAN_2026' || source.startsWith('QR_EVENT')
             ? colors.secondary
             : source.startsWith('QR_PRODUCT')
               ? colors.success
               : source.startsWith('QR_BANNER')
                 ? colors.warning
-                : source === 'DIRECT'
-                  ? '#8E44AD'
-                  : colors.secondary,
+                : '#8E44AD',
       }));
       if (!cancelled) setSourceDistribution(dist);
 
@@ -228,40 +243,70 @@ const Dashboard = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Bar Chart - Source Distribution */}
+        {/* Donut Chart - Region Distribution */}
         <div
           className="rounded-lg shadow-md p-6"
           style={{ backgroundColor: colors.surface }}
         >
           <h2 className="text-lg font-bold mb-4" style={{ color: colors.txt }}>
-            유입 경로별 분포
+            등록 고객 거주 지역 분포
           </h2>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={sourceDistribution} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-              <XAxis type="number" stroke={colors.sub} fontSize={12} />
-              <YAxis dataKey="source" type="category" stroke={colors.sub} fontSize={12} width={120} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: colors.surface,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: '8px',
+            <PieChart>
+              <Pie
+                data={regionDistribution}
+                dataKey="value"
+                nameKey="region"
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={100}
+                paddingAngle={2}
+                labelLine={{ stroke: colors.border, strokeWidth: 1, length1: 10, length2: 10 }}
+                label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, value, x, y, textAnchor, name }) => {
+                  const RADIAN = Math.PI / 180;
+                  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                  const insideX = cx + radius * Math.cos(-midAngle * RADIAN);
+                  const insideY = cy + radius * Math.sin(-midAngle * RADIAN);
+                  return (
+                    <g>
+                      <text x={x} y={y} fill={colors.sub} textAnchor={textAnchor} dominantBaseline="central" fontSize={11}>
+                        {name}
+                      </text>
+                      {percent > 0.03 && (
+                        <g>
+                          <text x={insideX} y={insideY - 6} fill="#FFFFFF" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight="bold">
+                            {value}명
+                          </text>
+                          <text x={insideX} y={insideY + 6} fill="#FFFFFF" textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight="bold">
+                            ({(percent * 100).toFixed(0)}%)
+                          </text>
+                        </g>
+                      )}
+                    </g>
+                  );
                 }}
-              />
-              <Bar dataKey="value" name="수" fill={colors.secondary}>
-                {sourceDistribution.map((entry, idx) => (
+              >
+                {regionDistribution.map((entry, idx) => (
                   <Cell key={idx} fill={entry.color} />
                 ))}
-              </Bar>
-            </BarChart>
+                <Label
+                  value={`${kpi.totalCustomers}명`}
+                  position="center"
+                  fill={colors.txt}
+                  style={{ fontSize: '20px', fontWeight: 'bold' }}
+                />
+              </Pie>
+              <Tooltip formatter={(value, name) => [`${value}명`, name]} />
+            </PieChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* 최근 AS 접수 현황 */}
+      {/* 최근 A/S 접수 현황 */}
       <div className="rounded-lg shadow-md p-6" style={{ backgroundColor: colors.surface }}>
         <h2 className="text-lg font-bold mb-4" style={{ color: colors.txt }}>
-          최근 AS 접수 현황
+          최근 A/S 접수 현황
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -273,7 +318,7 @@ const Dashboard = () => {
               }}
             >
               <tr>
-                {['접수번호', '고객명', '제품', '증상', '상태', '접수 일시'].map((h) => (
+                {['접수번호', '유입경로', '제품', '증상', '상태', '조치사항', '접수 일시'].map((h) => (
                   <th key={h} className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
                     {h}
                   </th>
@@ -283,7 +328,7 @@ const Dashboard = () => {
             <tbody>
               {recentAsLogs.length === 0 ? (
                 <tr>
-                  <td className="py-6 px-4 text-center text-sm" style={{ color: colors.sub }} colSpan={6}>
+                  <td className="py-6 px-4 text-center text-sm" style={{ color: colors.sub }} colSpan={7}>
                     데이터가 없습니다.
                   </td>
                 </tr>
@@ -292,10 +337,21 @@ const Dashboard = () => {
                   const date = formatKstDateTime(log.created_at);
                   const statusColor = log.resolved ? colors.success : log.escalated ? colors.error : colors.warning;
                   const statusText = log.resolved ? '해결완료' : log.escalated ? '상담원 연결' : '미해결';
+                  const mediumLabel = log.utm_medium === 'web' ? '웹(PC)' : log.utm_medium === 'mobile' ? '모바일' : null;
+                  const sourceLabel = log.utm_source ? log.utm_source.toUpperCase() : null;
+                  const channelLabel = mediumLabel && sourceLabel ? `${mediumLabel} - ${sourceLabel}` : mediumLabel || '수동입력';
+                  const channelColor = log.utm_medium === 'web' ? '#2E75B6' : log.utm_medium === 'mobile' ? '#8E44AD' : '#666666';
                   return (
                     <tr key={log.id} style={{ borderBottomColor: colors.border, borderBottomWidth: '1px' }}>
                       <td className="py-3 px-4" style={{ color: colors.txt }}>{log.ticket_no || log.id}</td>
-                      <td className="py-3 px-4" style={{ color: colors.txt }}>{log.customer_name}</td>
+                      <td className="py-3 px-4">
+                        <span
+                          className="px-2 py-1 rounded-full text-xs font-medium"
+                          style={{ backgroundColor: `${channelColor}15`, color: channelColor }}
+                        >
+                          {channelLabel}
+                        </span>
+                      </td>
                       <td className="py-3 px-4" style={{ color: colors.sub }}>{log.product}</td>
                       <td className="py-3 px-4" style={{ color: colors.sub }}>{log.symptom}</td>
                       <td className="py-3 px-4">
@@ -306,6 +362,7 @@ const Dashboard = () => {
                           {statusText}
                         </span>
                       </td>
+                      <td className="py-3 px-4" style={{ color: colors.sub }}>{log.actions_taken || '-'}</td>
                       <td className="py-3 px-4" style={{ color: colors.sub }}>{date}</td>
                     </tr>
                   );

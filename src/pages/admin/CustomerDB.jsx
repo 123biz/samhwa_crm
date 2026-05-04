@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { formatKstDateTime } from '../../lib/time/kst';
@@ -21,53 +21,44 @@ const CustomerDB = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
+  const [allCustomers, setAllCustomers] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
-    if (!supabase) {
-      return;
-    }
+    if (!supabase) return;
 
     (async () => {
       setLoading(true);
-
-      let q = supabase
+      const res = await supabase
         .from('customers')
-        .select('id, name, phone, region, products_owned, interests, marketing_consent, created_at', { count: 'exact' })
+        .select('id, name, phone, region, products_owned, interests, marketing_consent, created_at')
         .order('created_at', { ascending: false });
-
-      const term = searchTerm.trim();
-      if (term) {
-        q = q.or(`name.ilike.%${term}%,phone.ilike.%${term}%,id.ilike.%${term}%`);
-      }
-
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
-      q = q.range(from, to);
-
-      const res = await q;
       if (cancelled) return;
-
-      if (res.error) {
-        setRows([]);
-        setTotalCount(0);
-        setLoading(false);
-        return;
-      }
-
-      setRows(res.data || []);
-      setTotalCount(res.count || 0);
+      setAllCustomers(res.error ? [] : (res.data || []));
       setLoading(false);
     })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [searchTerm, currentPage]);
+    return () => { cancelled = true; };
+  }, []);
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const filteredCustomers = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return allCustomers;
+    return allCustomers.filter((c) => {
+      const products = (c.products_owned || []).join(' ').toLowerCase();
+      const interests = (c.interests || []).join(' ').toLowerCase();
+      return (
+        (c.name || '').toLowerCase().includes(term) ||
+        (c.phone || '').includes(term) ||
+        (c.region || '').toLowerCase().includes(term) ||
+        products.includes(term) ||
+        interests.includes(term)
+      );
+    });
+  }, [allCustomers, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / pageSize));
+  const rows = filteredCustomers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="p-6" style={{ backgroundColor: colors.bg, minHeight: '100vh' }}>
@@ -97,12 +88,9 @@ const CustomerDB = () => {
           <Search size={18} style={{ color: colors.sub }} />
           <input
             type="text"
-            placeholder="고객명, ID, 연락처로 검색"
+            placeholder="고객명, 연락처, 거주지역, 보유제품, 관심분야로 검색"
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
             className="flex-1 bg-transparent outline-none"
             style={{ color: colors.txt }}
           />
@@ -112,7 +100,7 @@ const CustomerDB = () => {
       {/* Results Count */}
       <div className="mb-4" style={{ color: colors.sub }}>
         <p className="text-sm">
-          총 <span className="font-semibold">{totalCount}</span>명의 고객이 조회되었습니다.
+          총 <span className="font-semibold">{filteredCustomers.length}</span>명의 고객이 조회되었습니다.{searchTerm && allCustomers.length !== filteredCustomers.length && <span className="ml-1 text-gray-400">(전체 {allCustomers.length}명)</span>}
         </p>
       </div>
 
@@ -199,7 +187,7 @@ const CustomerDB = () => {
       </div>
 
       {/* Pagination */}
-      {totalCount > 0 && (
+      {filteredCustomers.length > 0 && (
         <div className="flex items-center justify-between mt-6">
           <div style={{ color: colors.sub }} className="text-sm">
             {currentPage} / {totalPages} 페이지
@@ -235,7 +223,7 @@ const CustomerDB = () => {
         </div>
       )}
 
-      {!loading && totalCount === 0 && (
+      {!loading && filteredCustomers.length === 0 && (
         <div className="text-center py-12" style={{ color: colors.sub }}>
           <p>조회 결과가 없습니다.</p>
         </div>

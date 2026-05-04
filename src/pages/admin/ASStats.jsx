@@ -14,6 +14,7 @@ import {
   Pie,
   Label,
 } from 'recharts';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { formatKstDateTime } from '../../lib/time/kst';
 
@@ -42,6 +43,8 @@ const ASStats = () => {
 
   const [asLogs, setAsLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     let cancelled = false;
@@ -52,8 +55,7 @@ const ASStats = () => {
       const res = await supabase
         .from('as_logs')
         .select('id, ticket_no, customer_name, product, symptom, resolved, escalated, created_at, utm_source, utm_medium, actions_taken')
-        .order('created_at', { ascending: false })
-        .limit(200);
+        .order('created_at', { ascending: false });
       if (cancelled) return;
       setAsLogs(res.error ? [] : (res.data || []));
       setLoading(false);
@@ -120,8 +122,8 @@ const ASStats = () => {
       }));
   }, [asLogs]);
 
-  // Recent AS logs
-  const recentLogs = asLogs.slice(0, 10);
+  const totalPages = Math.max(1, Math.ceil(asLogs.length / pageSize));
+  const recentLogs = asLogs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const kpiCards = [
     {
@@ -151,10 +153,10 @@ const ASStats = () => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold" style={{ color: colors.txt }}>
-          AS 통계
+          A/S 통계
         </h1>
         <p style={{ color: colors.sub }} className="text-sm mt-1">
-          제품 AS 및 고객 문의 통계
+          제품 A/S 및 고객 문의 통계
         </p>
       </div>
 
@@ -296,7 +298,7 @@ const ASStats = () => {
         style={{ backgroundColor: colors.surface }}
       >
         <h2 className="text-lg font-bold mb-4" style={{ color: colors.txt }}>
-          최근 AS 접수 현황
+          최근 A/S 접수 현황
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -410,6 +412,31 @@ const ASStats = () => {
             </tbody>
           </table>
         </div>
+        {asLogs.length > 0 && (
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm" style={{ color: colors.sub }}>
+              {currentPage} / {totalPages} 페이지 (총 {asLogs.length}건)
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg disabled:opacity-50"
+                style={{ backgroundColor: colors.bg, borderColor: colors.border, borderWidth: '1px', color: colors.txt }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg disabled:opacity-50"
+                style={{ backgroundColor: colors.bg, borderColor: colors.border, borderWidth: '1px', color: colors.txt }}
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

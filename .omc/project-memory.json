@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1777696032315,
+  "lastScanned": 1777906244966,
   "projectRoot": "c:\\Aantigravity\\samhwa_crm",
   "techStack": {
     "languages": [
@@ -74,7 +74,7 @@
       "path": "dist",
       "purpose": "Distribution/build output",
       "fileCount": 16,
-      "lastAccessed": 1777696032209,
+      "lastAccessed": 1777906244812,
       "keyFiles": [
         "favicon.svg",
         "icons.svg",
@@ -87,7 +87,7 @@
       "path": "prd_ia__usecase_designguide",
       "purpose": null,
       "fileCount": 5,
-      "lastAccessed": 1777696032232,
+      "lastAccessed": 1777906244838,
       "keyFiles": [
         "삼화메디칼_카카오톡CRM_요구조건정의서_v1.0.docx",
         "삼화메디칼_카카오톡_CRM_DesignGuide_v1.0.docx",
@@ -100,7 +100,7 @@
       "path": "public",
       "purpose": "Public files",
       "fileCount": 18,
-      "lastAccessed": 1777696032234,
+      "lastAccessed": 1777906244843,
       "keyFiles": [
         "favicon.svg",
         "icons.svg",
@@ -113,7 +113,7 @@
       "path": "samhwa_CRM_WebApp",
       "purpose": null,
       "fileCount": 3,
-      "lastAccessed": 1777696032235,
+      "lastAccessed": 1777906244873,
       "keyFiles": [
         "favicon.svg",
         "icons.svg",
@@ -124,7 +124,7 @@
       "path": "src",
       "purpose": "Source code",
       "fileCount": 4,
-      "lastAccessed": 1777696032236,
+      "lastAccessed": 1777906244875,
       "keyFiles": [
         "App.css",
         "App.jsx",
@@ -136,7 +136,7 @@
       "path": "supabase",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1777696032237,
+      "lastAccessed": 1777906244880,
       "keyFiles": [
         "kst_views.sql",
         "schema_seed.sql"
@@ -146,7 +146,7 @@
       "path": "dist\\assets",
       "purpose": "Static assets",
       "fileCount": 2,
-      "lastAccessed": 1777696032239,
+      "lastAccessed": 1777906244888,
       "keyFiles": [
         "index-BiujbZOG.js",
         "index-D5-PiQIw.css"
@@ -156,7 +156,7 @@
       "path": "samhwa_CRM_WebApp\\assets",
       "purpose": "Static assets",
       "fileCount": 2,
-      "lastAccessed": 1777696032241,
+      "lastAccessed": 1777906244893,
       "keyFiles": [
         "index-3yB5svTx.css",
         "index-D5-r9ldR.js"
@@ -166,7 +166,7 @@
       "path": "src\\assets",
       "purpose": "Static assets",
       "fileCount": 3,
-      "lastAccessed": 1777696032243,
+      "lastAccessed": 1777906244895,
       "keyFiles": [
         "hero.png",
         "react.svg",
@@ -177,7 +177,7 @@
       "path": "src\\data",
       "purpose": "Data files",
       "fileCount": 1,
-      "lastAccessed": 1777696032243,
+      "lastAccessed": 1777906244896,
       "keyFiles": [
         "mockData.js"
       ]
@@ -186,7 +186,7 @@
       "path": "src\\lib",
       "purpose": "Library code",
       "fileCount": 2,
-      "lastAccessed": 1777696032244,
+      "lastAccessed": 1777906244898,
       "keyFiles": [
         "logQrVisit.js",
         "supabaseClient.js"
@@ -196,14 +196,14 @@
       "path": "src\\pages",
       "purpose": "Page components",
       "fileCount": 0,
-      "lastAccessed": 1777696032245,
+      "lastAccessed": 1777906244900,
       "keyFiles": []
     },
     "supabase\\migrations": {
       "path": "supabase\\migrations",
       "purpose": "Database migrations",
-      "fileCount": 5,
-      "lastAccessed": 1777696032247,
+      "fileCount": 8,
+      "lastAccessed": 1777906244904,
       "keyFiles": [
         "20260326_add_destination_url_to_qr_codes.sql",
         "20260327_add_ticket_no_to_as_logs.sql",
@@ -211,6 +211,55 @@
       ]
     }
   },
-  "hotPaths": [],
+  "hotPaths": [
+    {
+      "path": "src\\pages\\admin\\Dashboard.jsx",
+      "accessCount": 27,
+      "lastAccessed": 1777908130209,
+      "type": "file"
+    },
+    {
+      "path": "src\\pages\\admin\\ASStats.jsx",
+      "accessCount": 23,
+      "lastAccessed": 1777908528401,
+      "type": "file"
+    },
+    {
+      "path": "src\\pages\\admin\\CustomerDB.jsx",
+      "accessCount": 17,
+      "lastAccessed": 1777908873752,
+      "type": "directory"
+    },
+    {
+      "path": "src\\pages\\mobile\\Registration.jsx",
+      "accessCount": 13,
+      "lastAccessed": 1777906891548,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 6,
+      "lastAccessed": 1777908211812,
+      "type": "directory"
+    },
+    {
+      "path": "src\\lib\\data\\qrStats.js",
+      "accessCount": 3,
+      "lastAccessed": 1777908315062,
+      "type": "file"
+    },
+    {
+      "path": "src\\pages\\mobile\\QrRedirect.jsx",
+      "accessCount": 2,
+      "lastAccessed": 1777907460779,
+      "type": "directory"
+    },
+    {
+      "path": "src\\pages\\admin\\QRStats.jsx",
+      "accessCount": 1,
+      "lastAccessed": 1777907461519,
+      "type": "file"
+    }
+  ],
   "userDirectives": []
 }

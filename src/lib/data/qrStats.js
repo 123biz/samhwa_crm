@@ -90,6 +90,21 @@ export async function fetchQrStats({ days = 25, endDate, startDate } = {}) {
   // start~now 사이 일수 계산
   const totalDays = Math.round((now - start) / 86400000) + 1;
 
+  // 전체 누적 스캔 (scanCount용 — 날짜 필터 없음)
+  const allLogsRes = await supabase
+    .from('qr_logs')
+    .select('qr_code_id');
+
+  const byQrId = new Map();
+  for (const row of allLogsRes.data || []) {
+    if (!row.qr_code_id) continue;
+    byQrId.set(row.qr_code_id, (byQrId.get(row.qr_code_id) || 0) + 1);
+  }
+  for (const q of qrCodes) {
+    q.scanCount = byQrId.get(q.id) || 0;
+  }
+
+  // 일별 차트용 (날짜 필터 적용)
   const logsRes = await supabase
     .from('qr_logs')
     .select('created_at, qr_code_id')
@@ -103,17 +118,10 @@ export async function fetchQrStats({ days = 25, endDate, startDate } = {}) {
       d.setDate(start.getDate() + i);
       daily.push({ date: displayMdKey(isoDateKey(d)), product: 0, event: 0, banner: 0 });
     }
-    return {
-      ok: true,
-      qrCodes,
-      qrScanDaily: daily,
-    };
+    return { ok: true, qrCodes, qrScanDaily: daily };
   }
 
-  const byQrId = new Map();
-  const byDateType = new Map(); // key: YYYY-MM-DD -> { product,event,banner }
-
-  // 초기화(날짜 축 고정)
+  const byDateType = new Map();
   for (let i = 0; i < totalDays; i += 1) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
@@ -125,8 +133,6 @@ export async function fetchQrStats({ days = 25, endDate, startDate } = {}) {
   for (const row of logsRes.data || []) {
     const qrId = row.qr_code_id;
     if (!qrId) continue;
-
-    byQrId.set(qrId, (byQrId.get(qrId) || 0) + 1);
 
     const t = typeByQrId.get(qrId);
     if (!t) continue;
@@ -142,10 +148,6 @@ export async function fetchQrStats({ days = 25, endDate, startDate } = {}) {
     if (t === 'PRODUCT') bucket.product += 1;
     else if (t === 'EVENT') bucket.event += 1;
     else if (t === 'BANNER') bucket.banner += 1;
-  }
-
-  for (const q of qrCodes) {
-    q.scanCount = byQrId.get(q.id) || 0;
   }
 
   const qrScanDaily = Array.from(byDateType.entries())
