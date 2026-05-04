@@ -54,15 +54,31 @@ export async function fetchQrStats({ days = 25, endDate, startDate } = {}) {
     };
   }
 
-  const qrCodes = (qrRes.data || []).map((r) => ({
-    id: r.id,
-    type: r.type,
-    target: r.target,
-    source: r.source,
-    destinationUrl: r.destination_url ?? null,
-    createdAt: formatKstDate(r.created_at),
-    scanCount: 0,
-  }));
+  const SOURCE_ORDER = [
+    'QR_EVENT_KINTEX_2026',
+    'QR_PRODUCT_BODY_LOVE',
+    'QR_PRODUCT_ANKLE',
+    'QR_PRODUCT_MAGIC_CARE',
+    'QR_PRODUCT_PERFECT_GUN',
+  ];
+
+  const qrCodes = (qrRes.data || [])
+    .map((r) => ({
+      id: r.id,
+      type: r.type,
+      target: r.target,
+      source: r.source,
+      destinationUrl: r.destination_url ?? null,
+      createdAt: formatKstDate(r.created_at),
+      scanCount: 0,
+    }))
+    .sort((a, b) => {
+      const ai = SOURCE_ORDER.indexOf(a.source);
+      const bi = SOURCE_ORDER.indexOf(b.source);
+      const aIdx = ai === -1 ? SOURCE_ORDER.length : ai;
+      const bIdx = bi === -1 ? SOURCE_ORDER.length : bi;
+      return aIdx - bIdx;
+    });
 
   // 2) 날짜 범위 계산
   const now = endDate ? new Date(endDate) : new Date();

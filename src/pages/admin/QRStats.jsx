@@ -9,7 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { fetchQrStats } from '../../lib/data/qrStats';
 import { supabase } from '../../lib/supabaseClient';
@@ -485,16 +485,6 @@ const QRStats = () => {
                 >
                   <Pencil size={16} />
                 </button>
-                <button
-                  type="button"
-                  className="p-1 rounded-md text-red-400 hover:text-red-600 hover:bg-white/60"
-                  onClick={() => deleteQr(qr)}
-                  disabled={saving}
-                  aria-label="삭제"
-                  title="삭제"
-                >
-                  <Trash2 size={16} />
-                </button>
               </div>
             </div>
 
@@ -641,7 +631,7 @@ const QRStats = () => {
           <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <div className="text-lg font-bold text-[#1B3A5C]">QR 수정</div>
+                <div className="text-lg font-bold text-primary">QR 수정</div>
                 <div className="text-xs text-gray-500 mt-1">{editing.id}</div>
               </div>
               <button
@@ -775,7 +765,7 @@ const QRStats = () => {
               onPointerDown={startCreateDrag}
               title="드래그해서 이동"
             >
-              <div className="text-lg font-bold text-[#1B3A5C]">QR 등록</div>
+              <div className="text-lg font-bold text-primary">QR 등록</div>
               <button
                 type="button"
                 className="text-sm font-semibold text-gray-500 hover:text-gray-700"
