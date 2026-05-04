@@ -7,7 +7,7 @@ import { logQrVisit } from '../../lib/logQrVisit';
 const eventData = {
   kintex2026: {
     title: '2026 킨텍스 건강박람회',
-    subtitle: '삼화메디칼과 함께하세요!',
+    subtitle: '국민의 건강을 생각하는 기업 삼화메디칼과 함께 하세요!',
   },
   busan2026: {
     title: '2026 부산 메디카 엑스포',
@@ -121,20 +121,15 @@ export default function EventLanding() {
     <div className="max-w-md mx-auto min-h-screen bg-bg">
       {/* Hero Section */}
       <div className="bg-linear-to-br from-primary to-secondary px-4 py-12 text-center text-white">
-        <h1 className="text-4xl font-bold mb-2">{event.title}</h1>
-        <p className="text-lg text-blue-100">{event.subtitle}</p>
+        <h1 className="text-6xl font-bold mb-2">SOMOKO</h1>
+        <p className="text-lg text-blue-100">삼화메디칼과 함께 하세요!</p>
       </div>
 
       {/* Test QR */}
       {
         <div className="bg-white border-b border-gray-200 px-4 py-6 text-center">
           <div className="flex items-center justify-center">
-            {(() => {
-              return <QRCodeCanvas value={testQrUrl} size={180} includeMargin={false} />;
-            })()}
-          </div>
-          <div className="mt-3 text-xs text-gray-500 break-all">
-            source: {testSource}
+            <QRCodeCanvas value={`${publicBaseUrl}/landing/kintex2026`} size={180} includeMargin={false} />
           </div>
         </div>
       }

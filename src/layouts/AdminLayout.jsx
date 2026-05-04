@@ -67,6 +67,7 @@ export default function AdminLayout() {
         {sidebarOpen && (
           <div className="px-4 py-3 border-t border-white/10">
             <p className="text-lg text-white/40 mb-2 font-semibold">모바일 미리보기</p>
+            <Link to="/landing/kintex2026" target="_blank" className="block text-lg text-white/60 hover:text-white py-1 no-underline">📱 QR 스캔 화면</Link>
             <Link to="/register" target="_blank" className="block text-lg text-white/60 hover:text-white py-1 no-underline">✍️ 고객등록 폼</Link>
           </div>
         )}
