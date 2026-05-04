@@ -18,36 +18,11 @@ const CustomerDB = () => {
   };
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [segmentFilter, setSegmentFilter] = useState('전체');
-  const [sourceFilter, setSourceFilter] = useState('전체');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
-
-  const segmentBadgeColors = {
-    BUYER: '#2E75B6',
-    LEAD: '#8E44AD',
-    AGENT: '#16A085',
-    EVENT: '#E67E22',
-  };
-
-  const segmentLabels = {
-    BUYER: 'BUYER',
-    LEAD: 'LEAD',
-    AGENT: 'AGENT',
-    EVENT: '이벤트/전시회',
-  };
-
-  const sourceLabels = {
-    QR_EVENT: 'QR 이벤트',
-    QR_PRODUCT: 'QR 제품',
-    QR_BANNER: 'QR 배너',
-    DIRECT: '직접 추가',
-    '2026 킨텍스 건강박람회': '2026 킨텍스 건강박람회',
-    '2026 부산 메디카 엑스포': '2026 부산 메디카 엑스포',
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -60,15 +35,11 @@ const CustomerDB = () => {
 
       let q = supabase
         .from('customers')
-        .select('id, name, phone, segment, source, products_owned, interests, marketing_consent, created_at', { count: 'exact' })
+        .select('id, name, phone, region, products_owned, interests, marketing_consent, created_at', { count: 'exact' })
         .order('created_at', { ascending: false });
-
-      if (segmentFilter !== '전체') q = q.eq('segment', segmentFilter);
-      if (sourceFilter !== '전체') q = q.eq('source', sourceFilter);
 
       const term = searchTerm.trim();
       if (term) {
-        // name/phone/id 중 하나라도 매칭
         q = q.or(`name.ilike.%${term}%,phone.ilike.%${term}%,id.ilike.%${term}%`);
       }
 
@@ -94,9 +65,8 @@ const CustomerDB = () => {
     return () => {
       cancelled = true;
     };
-  }, [searchTerm, segmentFilter, sourceFilter, currentPage]);
+  }, [searchTerm, currentPage]);
 
-  // Pagination
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
@@ -111,91 +81,31 @@ const CustomerDB = () => {
         </p>
       </div>
 
-      {/* Search and Filters */}
+      {/* Search */}
       <div
         className="rounded-lg shadow-md p-6 mb-6"
         style={{ backgroundColor: colors.surface }}
       >
-        {/* Search Bar */}
-        <div className="mb-4">
-          <div
-            className="flex items-center gap-2 px-4 py-2 rounded-lg"
-            style={{
-              backgroundColor: colors.bg,
-              borderColor: colors.border,
-              borderWidth: '1px',
+        <div
+          className="flex items-center gap-2 px-4 py-2 rounded-lg"
+          style={{
+            backgroundColor: colors.bg,
+            borderColor: colors.border,
+            borderWidth: '1px',
+          }}
+        >
+          <Search size={18} style={{ color: colors.sub }} />
+          <input
+            type="text"
+            placeholder="고객명, ID, 연락처로 검색"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
             }}
-          >
-            <Search size={18} style={{ color: colors.sub }} />
-            <input
-              type="text"
-              placeholder="고객명, ID, 연락처로 검색"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="flex-1 bg-transparent outline-none"
-              style={{ color: colors.txt }}
-            />
-          </div>
-        </div>
-
-        {/* Filter Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Segment Filter */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: colors.txt }}>
-              세그먼트
-            </label>
-            <select
-              value={segmentFilter}
-              onChange={(e) => {
-                setSegmentFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full px-4 py-2 rounded-lg outline-none"
-              style={{
-                backgroundColor: colors.bg,
-                borderColor: colors.border,
-                borderWidth: '1px',
-                color: colors.txt,
-              }}
-            >
-              <option>전체</option>
-              <option>BUYER</option>
-              <option>LEAD</option>
-              <option value="EVENT">이벤트/전시회</option>
-              <option>AGENT</option>
-            </select>
-          </div>
-
-          {/* Source Filter */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: colors.txt }}>
-              유입경로
-            </label>
-            <select
-              value={sourceFilter}
-              onChange={(e) => {
-                setSourceFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full px-4 py-2 rounded-lg outline-none"
-              style={{
-                backgroundColor: colors.bg,
-                borderColor: colors.border,
-                borderWidth: '1px',
-                color: colors.txt,
-              }}
-            >
-              <option>전체</option>
-              <option value="QR_EVENT">QR 이벤트</option>
-              <option value="QR_PRODUCT">QR 제품</option>
-              <option value="QR_BANNER">QR 배너</option>
-              <option value="DIRECT">직접 추가</option>
-            </select>
-          </div>
+            className="flex-1 bg-transparent outline-none"
+            style={{ color: colors.txt }}
+          />
         </div>
       </div>
 
@@ -231,10 +141,7 @@ const CustomerDB = () => {
                   연락처
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
-                  세그먼트
-                </th>
-                <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
-                  유입경로
+                  거주지역
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: colors.txt }}>
                   보유제품
@@ -265,18 +172,8 @@ const CustomerDB = () => {
                   <td className="py-3 px-4" style={{ color: colors.sub }}>
                     {customer.phone}
                   </td>
-                  <td className="py-3 px-4">
-                    <span
-                      className="px-3 py-1 rounded-full text-xs font-medium text-white"
-                      style={{
-                        backgroundColor: segmentBadgeColors[customer.segment],
-                      }}
-                    >
-                      {segmentLabels[customer.segment] || customer.segment}
-                    </span>
-                  </td>
                   <td className="py-3 px-4" style={{ color: colors.sub }}>
-                    {sourceLabels[customer.source] || customer.source}
+                    {customer.region || '-'}
                   </td>
                   <td className="py-3 px-4" style={{ color: colors.sub }}>
                     {(customer.products_owned || []).join(', ')}

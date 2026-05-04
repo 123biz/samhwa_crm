@@ -32,14 +32,10 @@ export default function Registration() {
   });
 
   // Step 2: Info
-  const eventNames = {
-    kintex2026: '2026 킨텍스 건강박람회',
-    busan2026: '2026 부산 메디카 엑스포',
-  };
-
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    region: '',
     products: [],
     interests: [],
   });
@@ -137,19 +133,15 @@ export default function Registration() {
         return;
       }
 
-      const eventId = _eventId || 'kintex2026';
-      const eventSource = eventNames[eventId] || eventId;
-
       // 고객 등록
       const inserted = await supabase
         .from('customers')
         .insert({
           name: formData.name,
           phone: formData.phone,
+          region: formData.region || null,
           products_owned: formData.products,
           interests: formData.interests,
-          source: eventSource,
-          segment: 'EVENT',
           marketing_consent: consents.marketing,
           gift_status: 'pending',
           claimed_at: null,
@@ -335,8 +327,29 @@ export default function Registration() {
               )}
             </div>
 
+            {/* Region */}
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-primary mb-2">거주 지역</label>
+              <div className="grid grid-cols-2 gap-2">
+                {['서울', '경기', '강원', '충북', '충남', '경북', '경남', '전북', '전남', '제주'].map(region => (
+                  <button
+                    key={region}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, region: prev.region === region ? '' : region }))}
+                    className={`px-4 py-2 rounded-lg font-semibold transition text-sm ${
+                      formData.region === region
+                        ? 'bg-secondary text-white'
+                        : 'bg-gray-100 text-primary hover:bg-gray-200'
+                    }`}
+                  >
+                    {region}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Product Select */}
-            <div>
+            <div className="mt-4">
               <label className="block text-sm font-semibold text-primary mb-2">보유 제품 (복수 선택 가능)</label>
               <div className="grid grid-cols-2 gap-2">
                 {products.map(p => (
@@ -362,7 +375,7 @@ export default function Registration() {
             </div>
 
             {/* Interests */}
-            <div>
+            <div className="mt-4">
               <label className="block text-sm font-semibold text-primary mb-3">관심 분야</label>
               <div className="grid grid-cols-2 gap-2">
                 {['무릎', '발목', '허리', '전신'].map(interest => (
