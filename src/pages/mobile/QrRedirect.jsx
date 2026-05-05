@@ -8,7 +8,10 @@ export default function QrRedirect() {
   useEffect(() => {
     if (!supabase || !qrId) return;
 
-    const preview = new URLSearchParams(window.location.search).get('preview') === '1';
+    const params = new URLSearchParams(window.location.search);
+    const preview = params.get('preview') === '1' ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
 
     (async () => {
       const { data } = await supabase
