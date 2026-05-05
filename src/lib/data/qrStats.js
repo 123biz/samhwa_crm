@@ -55,6 +55,7 @@ export async function fetchQrStats({ days = 25, endDate, startDate } = {}) {
   }
 
   const SOURCE_ORDER = [
+    'QR_EVENT_ALL',
     'QR_EVENT_KINTEX_2026',
     'QR_PRODUCT_BODY_LOVE',
     'QR_PRODUCT_ANKLE',

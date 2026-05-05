@@ -19,13 +19,12 @@ export default function QrRedirect() {
 
       if (!data?.destination_url) return;
 
-      // 외부 URL일 때만 여기서 로그. 내부 URL은 도착 페이지에서 직접 logQrVisit을 호출.
       const isExternal = (() => {
         try { return new URL(data.destination_url).origin !== window.location.origin; }
         catch { return false; }
       })();
 
-      if (!preview && isExternal) {
+      if (!preview) {
         await supabase.from('qr_logs').insert({
           created_at: new Date().toISOString(),
           source: data.source || 'DIRECT',
@@ -33,7 +32,16 @@ export default function QrRedirect() {
         });
       }
 
-      window.location.href = data.destination_url;
+      // 내부 URL은 랜딩 페이지 중복 로깅 방지를 위해 _qr=1 마커 추가
+      let redirectUrl = data.destination_url;
+      if (!isExternal) {
+        try {
+          const u = new URL(data.destination_url, window.location.origin);
+          u.searchParams.set('_qr', '1');
+          redirectUrl = u.toString();
+        } catch { /* 파싱 실패 시 원본 사용 */ }
+      }
+      window.location.href = redirectUrl;
     })();
   }, [qrId]);
 

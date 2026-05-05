@@ -23,16 +23,18 @@ export default function EventLanding() {
   const [products, setProducts] = useState([]);
   const [eventQr, setEventQr] = useState(null);
 
+  const skipLog = searchParams.get('_qr') === '1';
   const lastLogKeyRef = useRef(null);
 
   const event = eventData[eventId] || eventData.kintex2026;
 
   useEffect(() => {
+    if (skipLog) return;
     const key = `${eventId}:${source ?? ''}`;
     if (lastLogKeyRef.current === key) return;
     lastLogKeyRef.current = key;
     logQrVisit(source).catch(() => {});
-  }, [source, eventId]);
+  }, [source, eventId, skipLog]);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,10 +66,11 @@ export default function EventLanding() {
     : `/register/${eventId}`;
 
   const testSourceByEventId = {
-    kintex2026: 'QR_EVENT_KINTEX_2026',
+    all: 'QR_EVENT_ALL',
+    kintex2026: 'QR_EVENT_ALL',
     busan2026: 'QR_EVENT_BUSAN_2026',
   };
-  const expectedSource = testSourceByEventId[eventId] || 'QR_EVENT_KINTEX_2026';
+  const expectedSource = testSourceByEventId[eventId] || 'QR_EVENT_ALL';
   const publicBaseUrl = (() => {
     const raw = import.meta.env.VITE_PUBLIC_APP_URL;
     if (!raw) return window.location.origin;
@@ -129,7 +132,7 @@ export default function EventLanding() {
       {
         <div className="bg-white border-b border-gray-200 px-4 py-6 text-center">
           <div className="flex items-center justify-center">
-            <QRCodeCanvas value={`${publicBaseUrl}/landing/kintex2026`} size={180} includeMargin={false} />
+            <QRCodeCanvas value={`${publicBaseUrl}/landing/all`} size={180} includeMargin={false} />
           </div>
         </div>
       }

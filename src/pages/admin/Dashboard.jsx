@@ -79,7 +79,8 @@ const Dashboard = () => {
       }
       const dist = Array.from(srcMap.entries()).map(([source, value]) => ({
         source:
-          source === 'QR_EVENT_KINTEX_2026' ? '킨텍스 건강박람회'
+          source === 'QR_EVENT_ALL' ? '행사/이벤트 QR'
+            : source === 'QR_EVENT_KINTEX_2026' ? '킨텍스 건강박람회'
             : source === 'QR_EVENT_BUSAN_2026' ? '부산 메디카 엑스포'
             : source.startsWith('QR_EVENT') ? 'QR 이벤트'
             : source.startsWith('QR_PRODUCT') ? 'QR 제품'
