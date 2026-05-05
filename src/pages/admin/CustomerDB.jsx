@@ -19,6 +19,14 @@ const CustomerDB = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  const formatPhoneInput = (value) => {
+    const digits = value.replace(/-/g, '');
+    if (!/^\d+$/.test(digits)) return value;
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
+  };
   const pageSize = 10;
   const [loading, setLoading] = useState(true);
   const [allCustomers, setAllCustomers] = useState([]);
@@ -90,7 +98,7 @@ const CustomerDB = () => {
             type="text"
             placeholder="고객명, 연락처, 거주지역, 보유제품, 관심분야로 검색"
             value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => { setSearchTerm(formatPhoneInput(e.target.value)); setCurrentPage(1); }}
             className="flex-1 bg-transparent outline-none"
             style={{ color: colors.txt }}
           />
