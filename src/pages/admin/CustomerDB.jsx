@@ -49,7 +49,7 @@ const CustomerDB = () => {
       const interests = (c.interests || []).join(' ').toLowerCase();
       return (
         (c.name || '').toLowerCase().includes(term) ||
-        (c.phone || '').includes(term) ||
+        (c.phone || '').replace(/-/g, '').includes(term.replace(/-/g, '')) ||
         (c.region || '').toLowerCase().includes(term) ||
         products.includes(term) ||
         interests.includes(term)
