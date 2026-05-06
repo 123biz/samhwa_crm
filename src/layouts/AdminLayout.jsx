@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Outlet, NavLink, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, Send, BarChart3, Headphones, QrCode, Bot, Menu, X, LogOut, Bell } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 const navItems = [
   { to: '/admin', icon: LayoutDashboard, label: '대시보드', end: true },
@@ -14,6 +15,24 @@ const navItems = [
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [userEmail, setUserEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const user = data.session?.user;
+      setUserEmail(user?.email ?? '');
+      setDisplayName(user?.user_metadata?.display_name || user?.email?.split('@')[0] || '');
+    });
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login', { replace: true });
+  };
+
+  const avatarLetter = displayName[0]?.toUpperCase() ?? '?';
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -92,10 +111,10 @@ export default function AdminLayout() {
               <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
             </button>
             <div className="flex items-center gap-2 text-sm">
-              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-white text-xs font-bold">정</div>
-              <span className="text-txt font-medium">정부장</span>
+              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-white text-xs font-bold">{avatarLetter}</div>
+              <span className="text-txt font-medium">{displayName}님</span>
             </div>
-            <button className="p-2 text-sub hover:text-error bg-transparent border-0 cursor-pointer">
+            <button onClick={handleLogout} className="p-2 text-sub hover:text-error bg-transparent border-0 cursor-pointer">
               <LogOut size={18} />
             </button>
           </div>
