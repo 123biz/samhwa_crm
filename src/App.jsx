@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import AdminLayout from './layouts/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
 import CustomerDB from './pages/admin/CustomerDB';
@@ -17,6 +18,18 @@ import StaffVerify from './pages/staff/StaffVerify';
 import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
 import { useAuth } from './hooks/useAuth';
+import { supabase } from './lib/supabaseClient';
+
+function PasswordRecoveryListener() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') navigate('/reset-password', { replace: true });
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+  return null;
+}
 
 /** Vite `base: './'`일 때 프로덕션 BASE_URL이 `./`가 되어 라우터와 불일치 → 빈 화면 방지 */
 function routerBasename() {
@@ -35,6 +48,7 @@ function ProtectedRoute() {
 export default function App() {
   return (
     <BrowserRouter basename={routerBasename()}>
+      <PasswordRecoveryListener />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/reset-password" element={<ResetPassword />} />
