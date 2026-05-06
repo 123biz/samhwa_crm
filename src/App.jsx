@@ -15,6 +15,7 @@ import EventLanding from './pages/mobile/EventLanding';
 import QrRedirect from './pages/mobile/QrRedirect';
 import StaffVerify from './pages/staff/StaffVerify';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 import { useAuth } from './hooks/useAuth';
 
 /** Vite `base: './'`일 때 프로덕션 BASE_URL이 `./`가 되어 라우터와 불일치 → 빈 화면 방지 */
@@ -36,6 +37,7 @@ export default function App() {
     <BrowserRouter basename={routerBasename()}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/admin" element={<ProtectedRoute />}>
           <Route index element={<Dashboard />} />
           <Route path="customers" element={<CustomerDB />} />
