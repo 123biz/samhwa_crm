@@ -23,6 +23,11 @@ import { supabase } from './lib/supabaseClient';
 function PasswordRecoveryListener() {
   const navigate = useNavigate();
   useEffect(() => {
+    // 이벤트보다 먼저 URL 해시에서 recovery 여부 즉시 확인
+    if (window.location.hash.includes('type=recovery')) {
+      navigate('/reset-password', { replace: true });
+      return;
+    }
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') navigate('/reset-password', { replace: true });
     });

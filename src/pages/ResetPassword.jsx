@@ -11,8 +11,12 @@ export default function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setReady(true);
+    // 이미 세션이 있으면 바로 활성화
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setReady(true);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) setReady(true);
     });
     return () => subscription.unsubscribe();
   }, []);
