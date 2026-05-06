@@ -81,13 +81,6 @@ export default function Login() {
           </button>
         </form>
 
-        <button
-          onClick={handleReset}
-          className="w-full mt-3 text-xs bg-transparent border-0 cursor-pointer"
-          style={{ color: '#888888' }}
-        >
-          비밀번호를 잊으셨나요?
-        </button>
       </div>
     </div>
   );
