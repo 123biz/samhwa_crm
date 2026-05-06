@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AreaChart,
   Area,
+  BarChart,
+  Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -404,7 +407,7 @@ const QRStats = () => {
         <h2 className="text-lg font-bold mb-4" style={{ color: colors.txt }}>
           QR 통계 요약
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <p style={{ color: colors.sub }} className="text-sm mb-2">총 QR 코드 수</p>
             <p className="text-2xl font-bold" style={{ color: colors.txt }}>{qrCodes.length}개</p>
@@ -413,14 +416,9 @@ const QRStats = () => {
             <p style={{ color: colors.sub }} className="text-sm mb-2">총 스캔 수</p>
             <p className="text-2xl font-bold" style={{ color: colors.secondary }}>{totalScanCount.toLocaleString()}건</p>
           </div>
-          <div>
-            <p style={{ color: colors.sub }} className="text-sm mb-2">평균 스캔율</p>
-            <p className="text-2xl font-bold" style={{ color: colors.success }}>
-              {qrCodes.length > 0 ? (totalScanCount / qrCodes.length).toFixed(0) : 0}건
-            </p>
-          </div>
         </div>
       </div>
+
 
       {/* QR Code Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -542,6 +540,33 @@ const QRStats = () => {
             </div>
           </div>
         ))}
+
+        {/* 제품별 QR 스캔 수 — 마지막 빈 자리 */}
+        {!loading && !dataError && (() => {
+          const productQrs = qrCodes.filter(qr => qr.type === 'PRODUCT');
+          if (productQrs.length === 0) return null;
+          const barData = productQrs.map(qr => ({
+            name: productById.get(qr.target)?.name || qr.target,
+            스캔수: qr.scanCount,
+          }));
+          return (
+            <div className="rounded-lg shadow-md p-6" style={{ backgroundColor: colors.surface }}>
+              <p className="text-sm font-semibold mb-4" style={{ color: colors.txt }}>제품별 QR 스캔 수</p>
+              <ResponsiveContainer width="100%" height={productQrs.length * 48 + 20}>
+                <BarChart data={barData} layout="vertical" margin={{ left: 8, right: 32, top: 4, bottom: 4 }}>
+                  <XAxis type="number" stroke={colors.sub} fontSize={12} />
+                  <YAxis type="category" dataKey="name" width={110} stroke={colors.sub} fontSize={12} />
+                  <Tooltip contentStyle={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '8px', fontSize: 12 }} />
+                  <Bar dataKey="스캔수" radius={[0, 4, 4, 0]}>
+                    {barData.map((_, i) => (
+                      <Cell key={i} fill={['#2563EB','#27AE60','#E67E22','#8E44AD','#DB2777','#0891B2'][i % 6]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          );
+        })()}
       </div>
 
       {/* QR 등록 버튼 */}
