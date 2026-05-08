@@ -115,10 +115,12 @@ export default function Registration() {
     try {
       setIsSaving(true);
 
-      // 고객 등록 (중복 시 phone UNIQUE 제약이 23505 에러 반환)
-      const inserted = await supabase
+      // UUID 클라이언트에서 생성 → INSERT 후 SELECT 불필요 (anon SELECT 정책 없어도 동작)
+      const newId = crypto.randomUUID();
+      const { error } = await supabase
         .from('customers')
         .insert({
+          id: newId,
           name: formData.name,
           phone: formData.phone,
           region: formData.region || null,
@@ -127,23 +129,21 @@ export default function Registration() {
           marketing_consent: consents.marketing,
           gift_status: 'pending',
           claimed_at: null,
-        })
-        .select('id')
-        .single();
+        });
 
-      if (inserted.error) {
+      if (error) {
         // 23505 = unique_violation (phone 중복)
-        if (inserted.error.code === '23505') {
+        if (error.code === '23505') {
           alert('이미 등록된 연락처입니다.');
           return;
         }
-        console.error('customers insert failed', inserted.error);
-        const msg = inserted.error?.message || '등록에 실패했습니다.';
+        console.error('customers insert failed', error);
+        const msg = error?.message || '등록에 실패했습니다.';
         alert(`등록 실패: ${msg}`);
         return;
       }
 
-      setCustomerId(inserted.data.id);
+      setCustomerId(newId);
       setFriendAdded(false);
       setCurrentStep(3);
     } catch {
