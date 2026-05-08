@@ -115,25 +115,7 @@ export default function Registration() {
     try {
       setIsSaving(true);
 
-      // 연락처 중복 체크
-      const existing = await supabase
-        .from('customers')
-        .select('id')
-        .eq('phone', formData.phone)
-        .maybeSingle();
-
-      if (existing.error) {
-        console.error('customers duplicate check failed', existing.error);
-        alert(`중복 체크 실패: ${existing.error?.message || '알 수 없는 오류'}`);
-        return;
-      }
-
-      if (existing.data) {
-        alert('이미 등록된 연락처입니다.');
-        return;
-      }
-
-      // 고객 등록
+      // 고객 등록 (중복 시 phone UNIQUE 제약이 23505 에러 반환)
       const inserted = await supabase
         .from('customers')
         .insert({
@@ -150,8 +132,11 @@ export default function Registration() {
         .single();
 
       if (inserted.error) {
-        // 테스트 단계에서 원인을 바로 알 수 있게 DB 에러를 노출합니다.
-        // 흔한 케이스: phone UNIQUE 제약 위반, 컬럼/제약 불일치 등
+        // 23505 = unique_violation (phone 중복)
+        if (inserted.error.code === '23505') {
+          alert('이미 등록된 연락처입니다.');
+          return;
+        }
         console.error('customers insert failed', inserted.error);
         const msg = inserted.error?.message || '등록에 실패했습니다.';
         alert(`등록 실패: ${msg}`);
