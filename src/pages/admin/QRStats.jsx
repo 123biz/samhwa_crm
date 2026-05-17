@@ -197,12 +197,14 @@ const QRStats = () => {
     refresh();
   }, [refresh]);
 
+  const FIXED_DESTINATION_URL = 'https://anti-mywebpage-skt6.vercel.app/landing/all';
+
   const [createForm, setCreateForm] = useState({
     type: 'EVENT',
     productId: '',
     target: '',
     source: '',
-    destinationUrl: '',
+    destinationUrl: FIXED_DESTINATION_URL,
   });
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -235,7 +237,7 @@ const QRStats = () => {
   };
 
   const resetCreate = () => {
-    setCreateForm({ type: 'EVENT', productId: '', target: '', source: '', destinationUrl: '' });
+    setCreateForm({ type: 'EVENT', productId: '', target: '', source: '', destinationUrl: FIXED_DESTINATION_URL });
   };
 
   const openCreate = () => {
@@ -283,26 +285,21 @@ const QRStats = () => {
       alert('target을 입력/선택해 주세요.');
       return;
     }
-    const destinationUrl = createForm.destinationUrl || buildQrUrl({
-      type,
-      target,
-      source: createForm.source || null,
-      destinationUrl: null,
-    });
+    const destinationUrl = createForm.destinationUrl;
     if (!destinationUrl) {
-      alert('QR URL을 생성할 수 없습니다. source를 확인해 주세요.');
+      alert('이동할 URL(destination_url)을 입력해 주세요.');
+      return;
+    }
+    const sourceVal = createForm.source.trim() || null;
+    if (sourceVal && qrCodes.some((qr) => qr.source === sourceVal)) {
+      alert(`"${sourceVal}"는 이미 사용 중인 source입니다. 다른 이름을 입력해 주세요.`);
       return;
     }
     try {
       setSaving(true);
       const res = await supabase
         .from('qr_codes')
-        .insert({
-          type,
-          target,
-          source: createForm.source ? createForm.source : null,
-          destination_url: destinationUrl,
-        })
+        .insert({ type, target, source: sourceVal, destination_url: destinationUrl })
         .select('id')
         .single();
       if (res.error) {
@@ -793,30 +790,37 @@ const QRStats = () => {
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs mb-1 text-gray-500">source (선택)</label>
-                <input
-                  className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
-                  value={createForm.source}
-                  onChange={(e) => {
-                    const s = e.target.value;
-                    setCreateForm((v) => {
-                      const next = { ...v, source: s };
-                      if (v.type === 'PRODUCT') next.destinationUrl = composeProductUrl(v.productId, s);
-                      return next;
-                    });
-                  }}
-                  placeholder="예: QR_EVENT_KINTEX_2026"
-                />
+              <div className="md:col-span-2">
+                <label className="block text-xs mb-1 text-gray-500">source (선택 — 기존 목록 참고 후 새 이름 입력)</label>
+                <div className="flex gap-2">
+                  <select
+                    className="w-48 rounded-md border border-gray-200 px-2 py-2 text-sm text-gray-500 shrink-0"
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) setCreateForm((v) => ({ ...v, source: e.target.value }));
+                      e.target.value = '';
+                    }}
+                  >
+                    <option value="">기존 목록 참고</option>
+                    {qrCodes.filter((qr) => qr.source).map((qr) => (
+                      <option key={qr.id} value={qr.source}>{qr.source}</option>
+                    ))}
+                  </select>
+                  <input
+                    className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm"
+                    value={createForm.source}
+                    onChange={(e) => setCreateForm((v) => ({ ...v, source: e.target.value }))}
+                    placeholder="새 source 입력 (예: QR_EVENT_AI_2026)"
+                  />
+                </div>
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs mb-1 text-gray-500">destination_url (필수)</label>
+                <label className="block text-xs mb-1 text-gray-500">destination_url</label>
                 <input
                   className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
                   value={createForm.destinationUrl}
                   onChange={(e) => setCreateForm((v) => ({ ...v, destinationUrl: e.target.value }))}
-                  placeholder="예: https://.../landing/kintex2026?source=..."
                 />
               </div>
 
