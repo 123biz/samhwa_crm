@@ -11,6 +11,8 @@ create unique index if not exists as_logs_ticket_no_uniq
 create or replace function public.generate_as_ticket_no(p_created_at timestamptz default now())
 returns text
 language plpgsql
+security definer
+set search_path = public
 as $$
 declare
   v_date text;

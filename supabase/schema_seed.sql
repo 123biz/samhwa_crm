@@ -110,6 +110,8 @@ create index if not exists as_logs_created_at_idx on public.as_logs(created_at d
 create or replace function public.generate_as_ticket_no(p_created_at timestamptz default now())
 returns text
 language plpgsql
+security definer
+set search_path = public
 as $$
 declare
   v_date text;
