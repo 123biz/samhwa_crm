@@ -202,7 +202,7 @@ const ASStats = () => {
                   {pData.product}
                 </h3>
                 <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
+                  <PieChart margin={{ top: 10, right: 50, bottom: 10, left: 50 }}>
                     <Pie
                       data={pData.symptoms}
                       dataKey="value"
