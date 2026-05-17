@@ -54,9 +54,14 @@ const Dashboard = () => {
         const region = r.region || '미입력';
         regionMap.set(region, (regionMap.get(region) || 0) + 1);
       }
+      const regionOrder = ['서울/경기', '강원', '충북', '충남', '경북', '경남', '전북', '전남', '제주'];
       const regionDist = Array.from(regionMap.entries())
         .map(([region, value]) => ({ region, value, color: regionColors[region] || '#AAAAAA' }))
-        .sort((a, b) => b.value - a.value);
+        .sort((a, b) => {
+          const ai = regionOrder.indexOf(a.region);
+          const bi = regionOrder.indexOf(b.region);
+          return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+        });
       if (!cancelled) setRegionDistribution(regionDist);
 
       // QR 스캔 수 + source 분포
@@ -272,17 +277,12 @@ const Dashboard = () => {
                   return (
                     <g>
                       <text x={x} y={y} fill={colors.sub} textAnchor={textAnchor} dominantBaseline="central" fontSize={11}>
-                        {name}
+                        {`${name} ${value}명`}
                       </text>
                       {percent > 0.03 && (
-                        <g>
-                          <text x={insideX} y={insideY - 6} fill="#FFFFFF" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight="bold">
-                            {value}명
-                          </text>
-                          <text x={insideX} y={insideY + 6} fill="#FFFFFF" textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight="bold">
-                            ({(percent * 100).toFixed(0)}%)
-                          </text>
-                        </g>
+                        <text x={insideX} y={insideY} fill="#FFFFFF" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight="bold">
+                          {`${(percent * 100).toFixed(0)}%`}
+                        </text>
                       )}
                     </g>
                   );
